@@ -1,15 +1,25 @@
 fileFormatVersion: 2
-guid: 033f1e9d7ad2baf42b861725fbe338f4
-timeCreated: 1505584607
+guid: 0b62b55c7b9a42d498c89adbcd163164
+timeCreated: 1506329888
 licenseType: Free
 ModelImporter:
-  serializedVersion: 19
+  serializedVersion: 21
   fileIDToRecycleName:
-    100000: //RootNode
-    400000: //RootNode
-    2300000: //RootNode
-    3300000: //RootNode
-    4300000: island_6
+    100000: main_island
+    100002: //RootNode
+    100004: polySurface40
+    100006: polySurface42
+    100008: polySurface44
+    100010: polySurface46
+    400000: main_island
+    400002: //RootNode
+    400004: polySurface40
+    400006: polySurface42
+    400008: polySurface44
+    400010: polySurface46
+    2300000: main_island
+    3300000: main_island
+    4300000: main_island
     9500000: //RootNode
   materials:
     importMaterials: 1
@@ -33,6 +43,7 @@ ModelImporter:
     animationScaleError: 0.5
     animationWrapMode: 0
     extraExposedTransformPaths: []
+    extraUserProperties: []
     clipAnimations: []
     isReadable: 1
   meshes:
@@ -40,7 +51,10 @@ ModelImporter:
     globalScale: 1
     meshCompression: 0
     addColliders: 0
+    importVisibility: 1
     importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
     swapUVChannels: 0
     generateSecondaryUV: 0
     useFileUnits: 1
@@ -56,6 +70,7 @@ ModelImporter:
     normalSmoothAngle: 60
     normalImportMode: 0
     tangentImportMode: 3
+    normalCalculationMode: 4
   importAnimation: 1
   copyAvatar: 0
   humanDescription:

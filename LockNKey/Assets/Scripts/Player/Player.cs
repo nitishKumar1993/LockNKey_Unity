@@ -18,6 +18,7 @@ public class Player : MonoBehaviour
     Vector3 m_nextPos = Vector3.zero;
 
     bool m_movementAllowed = false;
+    bool m_isDead = false;
 
     // Use this for initialization
     void Start()
@@ -25,22 +26,24 @@ public class Player : MonoBehaviour
         m_playerNavmeshAgent.updatePosition = true;
         m_playerNavmeshAgent.updateRotation = true;
 
-        StartCoroutine(CheckDeath());
+        CheckDeath();
     }
 
     void Update()
     {
-       /* if (Input.GetMouseButtonDown(1))
-        {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hitInfo;
+        /* if (Input.GetMouseButtonDown(1))
+         {
+             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+             RaycastHit hitInfo;
 
-            if (Physics.Raycast(ray, out hitInfo, 100))
-            {
-                Debug.Log(hitInfo.point);
-                m_playerNavmeshAgent.SetDestination(hitInfo.point);
-            }
-        }*/
+             if (Physics.Raycast(ray, out hitInfo, 100))
+             {
+                 Debug.Log(hitInfo.point);
+                 m_playerNavmeshAgent.SetDestination(hitInfo.point);
+             }
+         }*/
+
+        CheckDeath();
     }
 
     void FixedUpdate()
@@ -51,7 +54,7 @@ public class Player : MonoBehaviour
             m_playerAnimator.SetFloat("WalkSpeed", temp);
 
             m_nextPos = new Vector3(CnInputManager.GetAxis("Horizontal"), 0, CnInputManager.GetAxis("Vertical"));
-            m_playerNavmeshAgent.SetDestination(this.transform.position + (m_nextPos * 3));
+            m_playerNavmeshAgent.SetDestination(this.transform.position + (m_nextPos * 2));
         }
         else
         {
@@ -82,32 +85,21 @@ public class Player : MonoBehaviour
         m_movementAllowed = false;
     }
 
-    IEnumerator CheckDeath()
+    void CheckDeath()
     {
-        NavMeshHit navMeshHit;
-        bool deathCheck = false;
-        bool dead = false;
-        while(!dead)
-        {
-            if (NavMesh.SamplePosition(m_playerNavmeshAgent.transform.position, out navMeshHit, 0.1f, -1))
-            {
-                if (navMeshHit.mask == 8)
-                {
-                    if (deathCheck)
-                    {
-                        dead = true;
-                        GameObject tempSplash = Instantiate(m_splashPrefab, navMeshHit.position + Vector3.up * 3, Quaternion.identity) as GameObject;
-                        Debug.Log("Dead");
-                    }
-                    deathCheck = true;
-                }
-                else
-                {
-                    deathCheck = false;
-                }
-            }
 
-            yield return new WaitForSeconds(0.1f);
+        if (this.transform.position.y <= GameManager.Instance.GameWaterHeight)
+        {
+            if (!m_isDead)
+            {
+                m_isDead = true;
+                GameObject tempSplash = Instantiate(m_splashPrefab, this.transform.position, Quaternion.identity) as GameObject;
+                Debug.Log("Dead");
+            }
+        }
+        else
+        {
+            m_isDead = false;
         }
     }
 
