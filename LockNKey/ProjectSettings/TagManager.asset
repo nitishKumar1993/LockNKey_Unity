@@ -4,7 +4,9 @@
 TagManager:
   serializedVersion: 2
   tags:
-  - NoNavMeshLink
+  - Island
+  - LANLobbyContainer
+  - NetworkManager
   layers:
   - Default
   - TransparentFX

@@ -6,101 +6,105 @@ using UnityEngine.AI;
 
 public class Player : MonoBehaviour
 {
-
     [SerializeField]
     private Animator m_playerAnimator;
-    [SerializeField]
-    private NavMeshAgent m_playerNavmeshAgent;
 
     [SerializeField]
     private GameObject m_splashPrefab;
 
-    Vector3 m_nextPos = Vector3.zero;
+    [SerializeField]
+    int m_heroID = 0;
+
+    HeroData m_playerHeroData;
 
     bool m_movementAllowed = false;
     bool m_isDead = false;
+    bool isTouchingGround = true;
+
+    public bool MovementAllowed
+    {
+        get
+        {
+            return m_movementAllowed;
+        }
+
+        set
+        {
+            m_movementAllowed = value;
+        }
+    }
+
+    public Animator PlayerAnimator
+    {
+        get
+        {
+            return m_playerAnimator;
+        }
+
+        set
+        {
+            m_playerAnimator = value;
+        }
+    }
 
     // Use this for initialization
     void Start()
     {
-        m_playerNavmeshAgent.updatePosition = true;
-        m_playerNavmeshAgent.updateRotation = true;
-
-        CheckDeath();
+        Init();
     }
 
-    void Update()
+    void Init()
     {
-        /* if (Input.GetMouseButtonDown(1))
-         {
-             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-             RaycastHit hitInfo;
-
-             if (Physics.Raycast(ray, out hitInfo, 100))
-             {
-                 Debug.Log(hitInfo.point);
-                 m_playerNavmeshAgent.SetDestination(hitInfo.point);
-             }
-         }*/
-
-        CheckDeath();
+        m_playerHeroData = GameManager.Instance.AllHeroesData[m_heroID];
+        Camera.main.gameObject.GetComponent<CameraController>().PlayerGO = this.gameObject;
     }
+
 
     void FixedUpdate()
     {
-        if ((Mathf.Abs(CnInputManager.GetAxis("Horizontal")) > 0 || Mathf.Abs(CnInputManager.GetAxis("Vertical")) > 0) && !m_movementAllowed)
+        if (!m_isDead && isTouchingGround)
         {
-            float temp = Mathf.Max(Mathf.Abs(CnInputManager.GetAxis("Horizontal")), Mathf.Abs(CnInputManager.GetAxis("Vertical")));
-            m_playerAnimator.SetFloat("WalkSpeed", temp);
-
-            m_nextPos = new Vector3(CnInputManager.GetAxis("Horizontal"), 0, CnInputManager.GetAxis("Vertical"));
-            m_playerNavmeshAgent.SetDestination(this.transform.position + (m_nextPos * 2));
-        }
-        else
-        {
-            if (m_nextPos != Vector3.zero)
+            if ((Mathf.Abs(CnInputManager.GetAxis("Horizontal")) > 0 || Mathf.Abs(CnInputManager.GetAxis("Vertical")) > 0) && !MovementAllowed)
             {
-                m_playerAnimator.SetFloat("WalkSpeed", 0);
+                float temp = Mathf.Max(Mathf.Abs(CnInputManager.GetAxis("Horizontal")), Mathf.Abs(CnInputManager.GetAxis("Vertical")));
+                PlayerAnimator.SetFloat("WalkSpeed", temp);
 
-                m_playerNavmeshAgent.SetDestination(this.transform.position + m_nextPos * 0.1f);
-                m_nextPos = Vector3.zero;
+                Vector3 m_nextPos = new Vector3(CnInputManager.GetAxis("Horizontal"), 0, CnInputManager.GetAxis("Vertical"));
+                this.transform.position += (m_nextPos * 10 * m_playerHeroData.m_movementSpeed / 100) * Time.deltaTime;
+                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(m_nextPos), Time.deltaTime * 10);
             }
-        }
-    }
-
-    public void Attack()
-    {
-        StopCoroutine("AttackCR");
-        StartCoroutine("AttackCR");
-    }
-
-    IEnumerator AttackCR()
-    {
-        m_movementAllowed = true;
-        m_playerAnimator.SetBool("Attack", false);
-        yield return new WaitForEndOfFrame();
-        m_playerAnimator.SetBool("Attack", true);
-        yield return new WaitForSeconds(m_playerAnimator.GetCurrentAnimatorClipInfo(0).Length);
-        m_playerAnimator.SetBool("Attack", false);
-        m_movementAllowed = false;
-    }
-
-    void CheckDeath()
-    {
-
-        if (this.transform.position.y <= GameManager.Instance.GameWaterHeight)
-        {
-            if (!m_isDead)
+            else
             {
-                m_isDead = true;
-                GameObject tempSplash = Instantiate(m_splashPrefab, this.transform.position, Quaternion.identity) as GameObject;
-                Debug.Log("Dead");
+                PlayerAnimator.SetFloat("WalkSpeed", 0);
             }
         }
         else
         {
-            m_isDead = false;
+            PlayerAnimator.SetFloat("WalkSpeed", 0);
+            PlayerAnimator.SetBool("Dead", true);
         }
     }
 
+    public void UseSkill()
+    {
+        SkillsManager.Instance.UseSkill(this.gameObject, m_playerHeroData.m_skillID);
+    }
+
+    public void OnEnterWater()
+    {
+        m_isDead = true;
+        GameObject tempSplash = Instantiate(m_splashPrefab, this.transform.position + this.transform.forward, Quaternion.identity) as GameObject;
+        Debug.Log("Dead");
+    }
+
+    private void OnCollisionStay(Collision collision)
+    {
+        for (int i = 0; i < collision.contacts.Length; i++)
+        {
+           if(this.transform.position.y - collision.contacts[i].point.y < -0.5f)
+            {
+                isTouchingGround = false;
+            }
+        }
+    }
 }

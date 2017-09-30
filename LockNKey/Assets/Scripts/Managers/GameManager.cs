@@ -14,6 +14,8 @@ public class GameManager : MonoBehaviour {
     [SerializeField]
     private List<GameObject> m_islandsList = new List<GameObject>();
 
+    private HeroData[] m_allHeroesData;
+
     public float GameWaterHeight
     {
         get
@@ -26,16 +28,30 @@ public class GameManager : MonoBehaviour {
             m_gameWaterHeight = value;
         }
     }
+
+    public HeroData[] AllHeroesData
+    {
+        get
+        {
+            return m_allHeroesData;
+        }
+
+        set
+        {
+            m_allHeroesData = value;
+        }
+    }
+
     void Awake()
     {
         Instance = this;
+
+        AllHeroesData = ResourceManager.GetHeroesData();
     }
 
     void Start()
     {
-        Instance = this;
-
-        StartCoroutine(RemoveIslands());
+       // StartCoroutine(RemoveIslands());
     }
 	
 	IEnumerator RemoveIslands()

@@ -1,0 +1,5 @@
+HeroType(0=Chaser 1=Runner),Name,SkillId,MovementSpeed
+0,Himmat,0,100
+1,Kismat,1,90
+1,Jigar,2,80
+1,Dil,3,85

@@ -22,9 +22,9 @@ public class IslandBehaviour : MonoBehaviour
         float moveTime = 3;
         Vector3 movePostion = this.transform.position - Vector3.up * 5;
 
-        //iTween.ShakePosition(this.gameObject, Vector3.up, shakeTime);
+        iTween.ShakePosition(this.gameObject, Vector3.up, shakeTime);
         yield return new WaitForSeconds(shakeTime);
-        //iTween.MoveTo(this.gameObject, movePostion, moveTime);
+        iTween.MoveTo(this.gameObject, movePostion, moveTime);
         yield return new WaitForSeconds(moveTime);
         this.gameObject.SetActive(false);
     }
