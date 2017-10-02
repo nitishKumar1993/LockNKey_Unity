@@ -1,8 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Networking;
 
-public class GameManager : MonoBehaviour {
+public class GameManager : NetworkBehaviour{
     public static GameManager Instance;
 
     [SerializeField]
@@ -14,7 +15,26 @@ public class GameManager : MonoBehaviour {
     [SerializeField]
     private List<GameObject> m_islandsList = new List<GameObject>();
 
+    public SyncListInt m_finalHeroTypeSelection = new SyncListInt();
+
     private HeroData[] m_allHeroesData;
+
+    public SyncListString m_playersNameList = new SyncListString();
+
+    private int currentPlayerSlot;
+
+    public SyncListInt FinalHeroTypeSelection
+    {
+        get
+        {
+            return m_finalHeroTypeSelection;
+        }
+
+        set
+        {
+            m_finalHeroTypeSelection = value;
+        }
+    }
 
     public float GameWaterHeight
     {
@@ -42,10 +62,31 @@ public class GameManager : MonoBehaviour {
         }
     }
 
+    public int CurrentPlayerSlot
+    {
+        get
+        {
+            return currentPlayerSlot;
+        }
+
+        set
+        {
+            currentPlayerSlot = value;
+        }
+    }
+
     void Awake()
     {
-        Instance = this;
-
+        if (GameManager.Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(this.gameObject);
+            return;
+        }
+        DontDestroyOnLoad(this.gameObject);
         AllHeroesData = ResourceManager.GetHeroesData();
     }
 
@@ -53,8 +94,56 @@ public class GameManager : MonoBehaviour {
     {
        // StartCoroutine(RemoveIslands());
     }
-	
-	IEnumerator RemoveIslands()
+
+    public void UpdatePlayersName(string name)
+    {
+        if (m_playersNameList.Count != 4)
+        {
+            m_playersNameList.Clear();
+            for (int i = 0; i < 4; i++)
+            {
+                m_playersNameList.Add("");
+            }
+        }
+        m_playersNameList[currentPlayerSlot] = name;
+    }
+
+    public void SetFinalHeroArray(int chaserIndex)
+    {
+        FinalHeroTypeSelection.Clear();
+        for (int i = 0; i < 4; i++)
+        {
+            if (i == chaserIndex)
+            {
+                FinalHeroTypeSelection.Add(1);
+            }
+            else FinalHeroTypeSelection.Add(0);
+        }
+    }
+
+    public void ShowChaserSelection()
+    {
+        RpcShowChaserSelection();
+    }
+
+    [ClientRpc]
+    void RpcShowChaserSelection()
+    {
+        LobbyManager.Instance.ShowChaserSelection();
+    }
+
+    public void ShowHeroSelection()
+    {
+        RpcShowHeroSelection();
+    }
+
+    [ClientRpc]
+    void RpcShowHeroSelection()
+    {
+        LobbyManager.Instance.ShowHeroSelection();
+    }
+
+    IEnumerator RemoveIslands()
     {
         float totalGameDuration = m_gameDurationInMins * 60;
         float currentGameDuration = totalGameDuration / m_islandsList.Count; 

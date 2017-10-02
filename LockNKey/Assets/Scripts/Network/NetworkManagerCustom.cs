@@ -8,13 +8,8 @@ public class NetworkManagerCustom : NetworkLobbyManager {
     [SerializeField]
     private LobbyManager m_lobbyManager;
 
-	// Use this for initialization
-	void Start () {
-		
-	}
-	
-	// Update is called once per frame
-	void Update () {
+    // Use this for initialization
+    void Start () {
 		
 	}
 
@@ -27,20 +22,21 @@ public class NetworkManagerCustom : NetworkLobbyManager {
         else Debug.Log("Already hosting");
     }
 
-    public void Join()
-    {
-       // join();
-    }
-
     public override void OnLobbyClientConnect(NetworkConnection conn)
     {
-        Debug.Log("OnLobbyClientConnect connectionId : " + conn.connectionId);
-
+        //Debug.Log("OnLobbyClientConnect connectionId : " + conn.connectionId);
+      //  LobbyManager.Instance.OnClientEnterLobby(conn.connectionId);
     }
 
     public override void OnLobbyServerConnect(NetworkConnection conn)
     {
-        Debug.Log("OnLobbyServerConnect connectionId : " + conn.connectionId);
+       // Debug.Log("OnLobbyServerConnect connectionId : " + conn.connectionId);
+      //  LobbyManager.Instance.OnClientEnterLobby(conn.connectionId);
+    }
+
+    public override void OnLobbyServerPlayersReady()
+    {
+        LobbyManager.Instance.OnAllPlayerReady();
     }
 
     public override void OnStartHost()

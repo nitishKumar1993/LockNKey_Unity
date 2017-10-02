@@ -5,6 +5,8 @@ public class NDiscovery : NetworkDiscovery
 {
     public static NDiscovery Instance;
 
+    NetworkManagerCustom m_networkManager;
+
     public Action<string, string> onServerDetected;
 
     void OnServerDetected(string fromAddress, string data)
@@ -20,11 +22,13 @@ public class NDiscovery : NetworkDiscovery
         if (Instance == null)
         {
             Instance = this;
+            m_networkManager = this.GetComponent<NetworkManagerCustom>();
         }
     }
 
     public bool InitializeNetworkDiscovery()
     {
+        NetworkTransport.Init();
         return Initialize();
     }
 
@@ -40,7 +44,11 @@ public class NDiscovery : NetworkDiscovery
 
     public void StopBroadcasting()
     {
-        StopBroadcast();
+        if (m_networkManager.isNetworkActive)
+            m_networkManager.StopHost();
+
+        if (running)
+            StopBroadcast();
     }
 
     public void SetBroadcastData(string broadcastPayload)

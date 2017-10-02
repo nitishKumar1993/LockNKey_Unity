@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using CnControls;
 using UnityEngine.AI;
+using UnityEngine.Networking;
 
-public class Player : MonoBehaviour
+public class Player : NetworkBehaviour
 {
     [SerializeField]
     private Animator m_playerAnimator;
@@ -56,32 +57,38 @@ public class Player : MonoBehaviour
     void Init()
     {
         m_playerHeroData = GameManager.Instance.AllHeroesData[m_heroID];
-        Camera.main.gameObject.GetComponent<CameraController>().PlayerGO = this.gameObject;
+        if (this.isLocalPlayer)
+        {
+            Camera.main.gameObject.GetComponent<CameraController>().PlayerGO = this.gameObject;
+        }
     }
 
 
     void FixedUpdate()
     {
-        if (!m_isDead && isTouchingGround)
+        if (this.isLocalPlayer)
         {
-            if ((Mathf.Abs(CnInputManager.GetAxis("Horizontal")) > 0 || Mathf.Abs(CnInputManager.GetAxis("Vertical")) > 0) && !MovementAllowed)
+            if (!m_isDead && isTouchingGround)
             {
-                float temp = Mathf.Max(Mathf.Abs(CnInputManager.GetAxis("Horizontal")), Mathf.Abs(CnInputManager.GetAxis("Vertical")));
-                PlayerAnimator.SetFloat("WalkSpeed", temp);
+                if ((Mathf.Abs(CnInputManager.GetAxis("Horizontal")) > 0 || Mathf.Abs(CnInputManager.GetAxis("Vertical")) > 0) && !MovementAllowed)
+                {
+                    float temp = Mathf.Max(Mathf.Abs(CnInputManager.GetAxis("Horizontal")), Mathf.Abs(CnInputManager.GetAxis("Vertical")));
+                    PlayerAnimator.SetFloat("WalkSpeed", temp);
 
-                Vector3 m_nextPos = new Vector3(CnInputManager.GetAxis("Horizontal"), 0, CnInputManager.GetAxis("Vertical"));
-                this.transform.position += (m_nextPos * 10 * m_playerHeroData.m_movementSpeed / 100) * Time.deltaTime;
-                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(m_nextPos), Time.deltaTime * 10);
+                    Vector3 m_nextPos = new Vector3(CnInputManager.GetAxis("Horizontal"), 0, CnInputManager.GetAxis("Vertical"));
+                    this.transform.position += (m_nextPos * 10 * m_playerHeroData.m_movementSpeed / 100) * Time.deltaTime;
+                    transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(m_nextPos), Time.deltaTime * 10);
+                }
+                else
+                {
+                    PlayerAnimator.SetFloat("WalkSpeed", 0);
+                }
             }
             else
             {
                 PlayerAnimator.SetFloat("WalkSpeed", 0);
+                PlayerAnimator.SetBool("Dead", true);
             }
-        }
-        else
-        {
-            PlayerAnimator.SetFloat("WalkSpeed", 0);
-            PlayerAnimator.SetBool("Dead", true);
         }
     }
 
@@ -93,7 +100,7 @@ public class Player : MonoBehaviour
     public void OnEnterWater()
     {
         m_isDead = true;
-        GameObject tempSplash = Instantiate(m_splashPrefab, this.transform.position + this.transform.forward, Quaternion.identity) as GameObject;
+        Instantiate(m_splashPrefab, this.transform.position + this.transform.forward, Quaternion.identity);
         Debug.Log("Dead");
     }
 

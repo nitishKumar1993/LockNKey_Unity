@@ -2,13 +2,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Networking;
 
 public class LobbyManager : MonoBehaviour
 {
     public static LobbyManager Instance;
 
-    private NetworkManagerCustom n_networkManager;
-    private NDiscovery n_networkDiscovery;
+    private NetworkManagerCustom m_networkManager;
+    private NDiscovery m_networkDiscovery;
 
     [SerializeField]
     private GameObject m_commonAreaGO;
@@ -33,11 +34,28 @@ public class LobbyManager : MonoBehaviour
 
 
     [SerializeField]
+    private GameObject m_playerLobbyArea;
+    [SerializeField]
+    private GameObject m_playerLobbyStartGameBtn;
+    [SerializeField]
+    private GameObject m_playerLobbyEnterHeroeSelectionBtn;
+    [SerializeField]
+    private GameObject m_playerLobbyContainerGO;
+    [SerializeField]
+    private Text m_playerLobbyStatusText;
+
+    [SerializeField]
+    private GameObject m_heroSelectionArea;
+    [SerializeField]
     private GameObject m_playOnlineArea;
     [SerializeField]
     private GameObject m_settingsAreaGO;
     [SerializeField]
     private GameObject m_storeAreaGO;
+    [SerializeField]
+    private GameObject m_nameAreaGO;
+    [SerializeField]
+    private GameObject m_nameInputGO;
 
     private LobbyScreen m_currentLobbyScreen = LobbyScreen.None;
     private PlayScreen m_currenPlayScreen = PlayScreen.None;
@@ -45,16 +63,41 @@ public class LobbyManager : MonoBehaviour
 
     private List<string> m_hostedRoomsList = new List<string>();
 
+    private string m_nameSaveKey = "PlayerName";
+    private string m_welcomeMsg = "Welcome back ";
+    private string m_clientChaserSelectionMsg = "Wait...Host selecting Chaser";
+    private string m_hostChaserSelectionMsg = "Host select Chaser";
+
+    private string currentPlayerName = "Player";
+
     private void Awake()
     {
         Instance = this;
-        GameObject networkManagerGO = GameObject.FindGameObjectWithTag("NetworkManager");
-        n_networkManager = GameObject.FindGameObjectWithTag("NetworkManager").GetComponent<NetworkManagerCustom>();
+        m_networkManager = GameObject.FindGameObjectWithTag("NetworkManager").GetComponent<NetworkManagerCustom>();
     }
 
     void Start()
     {
+        CheckAndShowNameInput();
         NDiscovery.Instance.onServerDetected += OnReceiveBraodcast;
+    }
+
+    bool IsRunningAsServer
+    {
+        get { return NetworkServer.active; }
+    }
+
+    public string CurrentPlayerName
+    {
+        get
+        {
+            return currentPlayerName;
+        }
+
+        set
+        {
+            currentPlayerName = value;
+        }
     }
 
     void OnDestroy()
@@ -75,9 +118,14 @@ public class LobbyManager : MonoBehaviour
     }
     public void OnPlayBackBtnClick()
     {
-        ChangeMainScreen(LobbyScreen.Home);
+        if (m_currenPlayScreen == PlayScreen.PlayerLobby || m_currenPlayScreen == PlayScreen.LAN)
+        {
+            ChangePlayScreen(PlayScreen.Main);
+        }
+        else if (m_currenPlayScreen == PlayScreen.Main)
+            ChangeMainScreen(LobbyScreen.Home);
+
         NDiscovery.Instance.StopBroadcasting();
-        n_networkManager.StopHost();
     }
 
     public void OnSettingsBtnClick()
@@ -108,6 +156,35 @@ public class LobbyManager : MonoBehaviour
         ClearRoomContent();
     }
 
+    public void OnLobbyStartGameBtnClicked()
+    {
+        GameManager.Instance.ShowChaserSelection();
+        m_playerLobbyStartGameBtn.SetActive(false);
+        //m_networkManager.ServerChangeScene(m_networkManager.playScene);
+    }
+    public void OnLobbyEnterHeroSelectionClicked()
+    {
+        Debug.Log("OnLobbyEnterHeroSelectionClicked");
+        for (int i = 0; i < GameManager.Instance.FinalHeroTypeSelection.Count; i++)
+        {
+            Debug.Log(GameManager.Instance.FinalHeroTypeSelection[i]);
+        }
+        GameManager.Instance.ShowHeroSelection();
+    }
+
+    public void OnNameValueEntered(string value)
+    {
+        Debug.Log("OnNameValueEntered : " + value);
+        PlayerPrefs.SetString(m_nameSaveKey, value);
+        CheckAndShowNameInput();
+    }
+
+    public void OnNameChangeBtnClicked()
+    {
+        m_nameAreaGO.SetActive(false);
+        m_nameInputGO.SetActive(true);
+    }
+
     #endregion
 
     #region Networks
@@ -116,9 +193,11 @@ public class LobbyManager : MonoBehaviour
         if (m_LANRoomNameInput.text.Length > 1)
         {
             NDiscovery.Instance.SetBroadcastData(m_LANRoomNameInput.text);
+            NDiscovery.Instance.StartBroadcasting();
+            m_networkManager.StartHost();
         }
-        NDiscovery.Instance.StartBroadcasting();
-        n_networkManager.StartHost();
+        else
+            Debug.Log("Room Name error...");
     }
 
     void FindGames()
@@ -128,15 +207,56 @@ public class LobbyManager : MonoBehaviour
 
     public void JoinGame(string address)
     {
-        n_networkManager.networkAddress = address;
-        n_networkManager.StartClient();
         NDiscovery.Instance.StopBroadcasting();
+        m_networkManager.networkAddress = address;
+        m_networkManager.StartClient();
     }
 
     public void OnReceiveBraodcast(string fromIp, string data)
     {
         Debug.Log("Msg from : " + fromIp + ", Data : " + data);
         UpdateRoomsList(fromIp + "," + data);
+    }
+
+    public void OnClientEnterLobby(int id,bool isLocal)
+    {
+        Debug.Log(isLocal);
+        if (isLocal)
+        {
+            GameManager.Instance.CurrentPlayerSlot = id;
+            GameManager.Instance.UpdatePlayersName(CurrentPlayerName);
+        }
+        ChangePlayScreen(PlayScreen.PlayerLobby);
+
+
+        for (int i = 0; i < 4; i++)
+        {
+            if (i <= id)
+            {
+                m_playerLobbyContainerGO.transform.GetChild(i).Find("Image").GetComponent<Image>().color = Color.white;
+                m_playerLobbyContainerGO.transform.GetChild(i).Find("PlayerName").GetComponent<Text>().text = GameManager.Instance.m_playersNameList[i];
+            }
+            else
+            {
+                m_playerLobbyContainerGO.transform.GetChild(i).Find("Image").GetComponent<Image>().color = Color.grey;
+                m_playerLobbyContainerGO.transform.GetChild(i).Find("PlayerName").GetComponent<Text>().text = "";
+            }
+        }
+    }
+
+    public void OnAllPlayerReady()
+    {
+        Debug.Log("OnAllPlayerReady");
+        if (IsRunningAsServer)
+        {
+            m_playerLobbyEnterHeroeSelectionBtn.SetActive(false);
+            m_playerLobbyStartGameBtn.SetActive(true);
+            Debug.Log("Running as a server");
+        }
+        else
+        {
+            Debug.Log("Running as a client");
+        }
     }
 
     #endregion
@@ -190,6 +310,12 @@ public class LobbyManager : MonoBehaviour
                     case PlayScreen.Online:
                         m_playOnlineArea.SetActive(activate);
                         break;
+                    case PlayScreen.PlayerLobby:
+                        m_playerLobbyArea.SetActive(activate);
+                        break; 
+                    case PlayScreen.HeroSelection:
+                        m_heroSelectionArea.SetActive(activate);
+                        break;
                 }
             }
             activate = true;
@@ -227,8 +353,76 @@ public class LobbyManager : MonoBehaviour
     }
 
     #endregion
+
+    void CheckAndShowNameInput()
+    {
+        if(PlayerPrefs.HasKey(m_nameSaveKey))
+        {
+            currentPlayerName = PlayerPrefs.GetString(m_nameSaveKey);
+        }
+        m_nameAreaGO.SetActive(PlayerPrefs.HasKey(m_nameSaveKey));
+        m_nameInputGO.SetActive(!PlayerPrefs.HasKey(m_nameSaveKey));
+        m_nameAreaGO.transform.Find("Text").GetComponent<Text>().text = PlayerPrefs.HasKey(m_nameSaveKey) ? m_welcomeMsg + PlayerPrefs.GetString(m_nameSaveKey) : "";
+    
+    }
+    
+    public void ShowChaserSelection()
+    {
+        if (IsRunningAsServer)
+        {
+            foreach (Transform item in m_playerLobbyContainerGO.transform)
+            {
+                item.Find("ChaserSelection").gameObject.SetActive(true);
+            }
+            m_playerLobbyStatusText.text = m_hostChaserSelectionMsg;
+            Debug.Log("Running as a server");
+        }
+        else 
+        {
+            m_playerLobbyStatusText.text = m_clientChaserSelectionMsg;
+            Debug.Log("Running as a client");
+        }
+    }
+
+    public void OnPlayer1ChaserSelected(bool value)
+    {
+        if(value)
+        {
+            GameManager.Instance.SetFinalHeroArray(0);
+        }
+        m_playerLobbyEnterHeroeSelectionBtn.SetActive(m_playerLobbyContainerGO.transform.GetChild(0).Find("PlayerName").GetComponent<Text>().text.Length > 1 ? true : false);
+    }
+    public void OnPlayer2ChaserSelected(bool value)
+    {
+        if (value)
+        {
+            GameManager.Instance.SetFinalHeroArray(1);
+        }
+        m_playerLobbyEnterHeroeSelectionBtn.SetActive(m_playerLobbyContainerGO.transform.GetChild(1).Find("PlayerName").GetComponent<Text>().text.Length > 1 ? true : false);
+    }
+    public void OnPlayer3ChaserSelected(bool value)
+    {
+        if (value)
+        {
+            GameManager.Instance.SetFinalHeroArray(2);
+        }
+        m_playerLobbyEnterHeroeSelectionBtn.SetActive(m_playerLobbyContainerGO.transform.GetChild(2).Find("PlayerName").GetComponent<Text>().text.Length > 1 ? true : false);
+    }
+    public void OnPlayer4ChaserSelected(bool value)
+    {
+        if (value)
+        {
+            GameManager.Instance.SetFinalHeroArray(3);
+        }
+        m_playerLobbyEnterHeroeSelectionBtn.SetActive(m_playerLobbyContainerGO.transform.GetChild(3).Find("PlayerName").GetComponent<Text>().text.Length > 1 ? true : false);
+    }
+   
+    public void ShowHeroSelection()
+    {
+        ChangePlayScreen(PlayScreen.HeroSelection);
+    }
 }
 
 public enum LobbyScreen { None, Home, Play, Settings, Store }
-public enum PlayScreen { None, Main, LAN, Online }
+public enum PlayScreen { None, Main, LAN, Online, PlayerLobby,HeroSelection }
 public enum Map { None, GreenJungle }
