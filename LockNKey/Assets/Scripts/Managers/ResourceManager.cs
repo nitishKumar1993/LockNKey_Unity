@@ -55,7 +55,7 @@ public class ResourceManager {
 
 public enum HeroType { Chaser, Runner }
 
-public class HeroData
+public struct HeroData
 {
     public HeroType m_heroType;
     public string m_name;

@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 
-public class GameManager : NetworkBehaviour{
+public class GameManager : NetworkBehaviour
+{
     public static GameManager Instance;
 
     [SerializeField]
@@ -17,11 +18,16 @@ public class GameManager : NetworkBehaviour{
 
     public SyncListInt m_finalHeroTypeSelection = new SyncListInt();
 
+    private List<HeroData> m_finalHeroSelectionList = new List<HeroData>();
+
     private HeroData[] m_allHeroesData;
 
     public SyncListString m_playersNameList = new SyncListString();
 
     private int currentPlayerSlot;
+    private LobbyPlayer currentLobbyPlayer;
+
+    private HeroData currentPlayerHeroData;
 
     public SyncListInt FinalHeroTypeSelection
     {
@@ -75,6 +81,32 @@ public class GameManager : NetworkBehaviour{
         }
     }
 
+    public HeroData CurrentPlayerHeroData
+    {
+        get
+        {
+            return currentPlayerHeroData;
+        }
+
+        set
+        {
+            currentPlayerHeroData = value;
+        }
+    }
+
+    public LobbyPlayer CurrentLobbyPlayer
+    {
+        get
+        {
+            return currentLobbyPlayer;
+        }
+
+        set
+        {
+            currentLobbyPlayer = value;
+        }
+    }
+
     void Awake()
     {
         if (GameManager.Instance == null)
@@ -92,7 +124,7 @@ public class GameManager : NetworkBehaviour{
 
     void Start()
     {
-       // StartCoroutine(RemoveIslands());
+        // StartCoroutine(RemoveIslands());
     }
 
     public void UpdatePlayersName(string name)
@@ -140,13 +172,51 @@ public class GameManager : NetworkBehaviour{
     [ClientRpc]
     void RpcShowHeroSelection()
     {
-        LobbyManager.Instance.ShowHeroSelection();
+        LobbyManager.Instance.ShowHeroSelection(currentPlayerSlot);
+    }
+
+    [ClientRpc]
+    void RpcLoadGameScene()
+    {
+        LobbyManager.Instance.NetworkManager.LoadGameScene();
+    }
+
+    public void OnHeroSelectedCallBack(int playerIndex, HeroData heroData)
+    {
+        if (m_finalHeroSelectionList.Count < 4)
+        {
+            m_finalHeroSelectionList = new List<HeroData>();
+            for (int i = 0; i < 4; i++)
+            {
+                m_finalHeroSelectionList.Add(new HeroData());
+            }
+        }
+
+        m_finalHeroSelectionList[playerIndex] = heroData;
+
+        if (GetReadyPlayersHeroCount() >= NetworkServer.connections.Count)
+        {
+            LobbyManager.Instance.ShowEnterGameBtn();
+        }
+    }
+
+    int GetReadyPlayersHeroCount()
+    {
+        int tempNo = 0;
+        for (int i = 0; i < m_finalHeroSelectionList.Count; i++)
+        {
+            if(m_finalHeroSelectionList[i].m_name  != null)
+            {
+                tempNo++;
+            }
+        }
+        return tempNo;
     }
 
     IEnumerator RemoveIslands()
     {
         float totalGameDuration = m_gameDurationInMins * 60;
-        float currentGameDuration = totalGameDuration / m_islandsList.Count; 
+        float currentGameDuration = totalGameDuration / m_islandsList.Count;
 
         while (totalGameDuration > 0)
         {
@@ -154,7 +224,7 @@ public class GameManager : NetworkBehaviour{
             currentGameDuration -= Time.deltaTime;
             if (currentGameDuration <= 0)
             {
-               // Debug.Log("Remove islands");
+                // Debug.Log("Remove islands");
                 m_islandsList[m_islandsList.Count - 1].GetComponent<IslandBehaviour>().RemoveIsland();
 
                 m_islandsList.RemoveAt(m_islandsList.Count - 1);

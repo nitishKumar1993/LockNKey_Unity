@@ -38,14 +38,26 @@ public class LobbyPlayer : NetworkLobbyPlayer {
     }
 
     // Use this for initialization
-    void Start () {
+    void Start()
+    {
         DontDestroyOnLoad(this.gameObject);
         if (this.isLocalPlayer)
+        {
             SendReadyToBeginMessage();
-
-        LobbyManager.Instance.OnClientEnterLobby(slot, isLocalPlayer);
+        }
+        LobbyManager.Instance.OnClientEnterLobby(this, slot, isLocalPlayer);
     }
-	
+   
+    public void OnHeroSelected(int playerIndex, HeroData heroData)
+    {
+        CmdOnHeroSelected(playerIndex, heroData);
+    }
+
+    [Command]
+    void CmdOnHeroSelected(int playerIndex, HeroData heroData)
+    {
+        GameManager.Instance.OnHeroSelectedCallBack(playerIndex, heroData);
+    }
 
     public override void OnClientEnterLobby()
     {

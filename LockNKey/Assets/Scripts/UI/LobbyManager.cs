@@ -47,6 +47,16 @@ public class LobbyManager : MonoBehaviour
     [SerializeField]
     private GameObject m_heroSelectionArea;
     [SerializeField]
+    private GameObject m_heroSelectionContentGO;
+    [SerializeField]
+    private Text m_heroSelectionStatusText;
+    [SerializeField]
+    private GameObject m_heroSelectionSelectedHeroGO;
+    [SerializeField]
+    private GameObject m_heroSelectionConfirmBtnGO;
+    [SerializeField]
+    private GameObject m_heroSelectionEnterGameBtnGO;
+    [SerializeField]
     private GameObject m_playOnlineArea;
     [SerializeField]
     private GameObject m_settingsAreaGO;
@@ -63,17 +73,22 @@ public class LobbyManager : MonoBehaviour
 
     private List<string> m_hostedRoomsList = new List<string>();
 
+    private HeroData m_selectedHeroData = new HeroData();
+
     private string m_nameSaveKey = "PlayerName";
     private string m_welcomeMsg = "Welcome back ";
     private string m_clientChaserSelectionMsg = "Wait...Host selecting Chaser";
     private string m_hostChaserSelectionMsg = "Host select Chaser";
+
+    private string m_heroSelectionChaserMsg = "Choose Chaser";
+    private string m_heroSelectionRunnerMsg = "Choose Runner";
 
     private string currentPlayerName = "Player";
 
     private void Awake()
     {
         Instance = this;
-        m_networkManager = GameObject.FindGameObjectWithTag("NetworkManager").GetComponent<NetworkManagerCustom>();
+        NetworkManager = GameObject.FindGameObjectWithTag("NetworkManager").GetComponent<NetworkManagerCustom>();
     }
 
     void Start()
@@ -82,7 +97,7 @@ public class LobbyManager : MonoBehaviour
         NDiscovery.Instance.onServerDetected += OnReceiveBraodcast;
     }
 
-    bool IsRunningAsServer
+    public bool IsRunningAsServer
     {
         get { return NetworkServer.active; }
     }
@@ -97,6 +112,19 @@ public class LobbyManager : MonoBehaviour
         set
         {
             currentPlayerName = value;
+        }
+    }
+
+    public NetworkManagerCustom NetworkManager
+    {
+        get
+        {
+            return m_networkManager;
+        }
+
+        set
+        {
+            m_networkManager = value;
         }
     }
 
@@ -165,10 +193,6 @@ public class LobbyManager : MonoBehaviour
     public void OnLobbyEnterHeroSelectionClicked()
     {
         Debug.Log("OnLobbyEnterHeroSelectionClicked");
-        for (int i = 0; i < GameManager.Instance.FinalHeroTypeSelection.Count; i++)
-        {
-            Debug.Log(GameManager.Instance.FinalHeroTypeSelection[i]);
-        }
         GameManager.Instance.ShowHeroSelection();
     }
 
@@ -185,6 +209,31 @@ public class LobbyManager : MonoBehaviour
         m_nameInputGO.SetActive(true);
     }
 
+    public void OnHeroSelectionConfirm()
+    {
+        if (m_selectedHeroData.m_name != null)
+        {
+            GameManager.Instance.CurrentPlayerHeroData = m_selectedHeroData;
+            GameManager.Instance.CurrentLobbyPlayer.OnHeroSelected(GameManager.Instance.CurrentPlayerSlot, m_selectedHeroData);
+            m_heroSelectionConfirmBtnGO.SetActive(false);
+
+            m_heroSelectionStatusText.text = "Hero Selected";
+
+            m_heroSelectionContentGO.transform.parent.parent.gameObject.SetActive(false);
+            m_heroSelectionSelectedHeroGO.SetActive(true);
+            m_heroSelectionSelectedHeroGO.transform.Find("Text").GetComponent<Text>().text = m_selectedHeroData.m_name;
+        }
+        else
+        {
+            Debug.Log("no hero selected");
+        }
+    }
+
+    public void OnEnterGameClicked()
+    {
+        NetworkManager.LoadGameScene();
+    }
+
     #endregion
 
     #region Networks
@@ -194,7 +243,7 @@ public class LobbyManager : MonoBehaviour
         {
             NDiscovery.Instance.SetBroadcastData(m_LANRoomNameInput.text);
             NDiscovery.Instance.StartBroadcasting();
-            m_networkManager.StartHost();
+            NetworkManager.StartHost();
         }
         else
             Debug.Log("Room Name error...");
@@ -208,8 +257,8 @@ public class LobbyManager : MonoBehaviour
     public void JoinGame(string address)
     {
         NDiscovery.Instance.StopBroadcasting();
-        m_networkManager.networkAddress = address;
-        m_networkManager.StartClient();
+        NetworkManager.networkAddress = address;
+        NetworkManager.StartClient();
     }
 
     public void OnReceiveBraodcast(string fromIp, string data)
@@ -218,11 +267,11 @@ public class LobbyManager : MonoBehaviour
         UpdateRoomsList(fromIp + "," + data);
     }
 
-    public void OnClientEnterLobby(int id,bool isLocal)
+    public void OnClientEnterLobby(LobbyPlayer player, int id,bool isLocal)
     {
-        Debug.Log(isLocal);
         if (isLocal)
         {
+            GameManager.Instance.CurrentLobbyPlayer = player;
             GameManager.Instance.CurrentPlayerSlot = id;
             GameManager.Instance.UpdatePlayersName(CurrentPlayerName);
         }
@@ -352,6 +401,26 @@ public class LobbyManager : MonoBehaviour
         m_hostedRoomsList.Clear();
     }
 
+    void UpdateHeroSelectionScreen(int heroType)
+    {
+        int tempNo = 0;
+        for (int i = 0; i < GameManager.Instance.AllHeroesData.Length; i++)
+        {
+            if(GameManager.Instance.AllHeroesData[i].m_heroType == (heroType == 0 ? HeroType.Chaser : HeroType.Runner))
+            {
+                HeroData currentHeroData = GameManager.Instance.AllHeroesData[i];
+                m_heroSelectionContentGO.transform.GetChild(tempNo).GetComponent<HeroSelectionObj>().Init(currentHeroData);
+                m_heroSelectionContentGO.transform.GetChild(tempNo).Find("NameText").GetComponent<Text>().text = currentHeroData.m_name;
+                tempNo++;
+            }
+        }
+        for (int i = tempNo; i < m_heroSelectionContentGO.transform.childCount; i++)
+        {
+            m_heroSelectionContentGO.transform.GetChild(i).gameObject.SetActive(false);
+        }
+        m_heroSelectionStatusText.text =  (heroType == 0 ? m_heroSelectionChaserMsg : m_heroSelectionRunnerMsg);
+    }
+
     #endregion
 
     void CheckAndShowNameInput()
@@ -375,51 +444,47 @@ public class LobbyManager : MonoBehaviour
                 item.Find("ChaserSelection").gameObject.SetActive(true);
             }
             m_playerLobbyStatusText.text = m_hostChaserSelectionMsg;
-            Debug.Log("Running as a server");
         }
         else 
         {
             m_playerLobbyStatusText.text = m_clientChaserSelectionMsg;
-            Debug.Log("Running as a client");
         }
     }
 
-    public void OnPlayer1ChaserSelected(bool value)
+    public void OnPlayerChaserSelected(Toggle toggle)
     {
-        if(value)
+        int index = int.Parse(toggle.transform.parent.name.Remove(0, 6));
+        if (toggle.isOn)
         {
-            GameManager.Instance.SetFinalHeroArray(0);
+            GameManager.Instance.SetFinalHeroArray(index);
         }
-        m_playerLobbyEnterHeroeSelectionBtn.SetActive(m_playerLobbyContainerGO.transform.GetChild(0).Find("PlayerName").GetComponent<Text>().text.Length > 1 ? true : false);
-    }
-    public void OnPlayer2ChaserSelected(bool value)
-    {
-        if (value)
+
+        int playersNo = 0;
+        for (int i = 0; i < NetworkManager.lobbySlots.Length; i++)
         {
-            GameManager.Instance.SetFinalHeroArray(1);
+            if(NetworkManager.lobbySlots[i] != null)
+            {
+                playersNo++;
+            }
         }
-        m_playerLobbyEnterHeroeSelectionBtn.SetActive(m_playerLobbyContainerGO.transform.GetChild(1).Find("PlayerName").GetComponent<Text>().text.Length > 1 ? true : false);
+ 
+        m_playerLobbyEnterHeroeSelectionBtn.SetActive(index <= playersNo ? true : false);
     }
-    public void OnPlayer3ChaserSelected(bool value)
-    {
-        if (value)
-        {
-            GameManager.Instance.SetFinalHeroArray(2);
-        }
-        m_playerLobbyEnterHeroeSelectionBtn.SetActive(m_playerLobbyContainerGO.transform.GetChild(2).Find("PlayerName").GetComponent<Text>().text.Length > 1 ? true : false);
-    }
-    public void OnPlayer4ChaserSelected(bool value)
-    {
-        if (value)
-        {
-            GameManager.Instance.SetFinalHeroArray(3);
-        }
-        m_playerLobbyEnterHeroeSelectionBtn.SetActive(m_playerLobbyContainerGO.transform.GetChild(3).Find("PlayerName").GetComponent<Text>().text.Length > 1 ? true : false);
-    }
-   
-    public void ShowHeroSelection()
+
+    public void ShowHeroSelection(int heroType)
     {
         ChangePlayScreen(PlayScreen.HeroSelection);
+        UpdateHeroSelectionScreen(heroType);
+    }
+
+    public void OnHeroSelected(HeroData heroData)
+    {
+        m_selectedHeroData = heroData;
+    }
+
+    public void ShowEnterGameBtn()
+    {
+        m_heroSelectionEnterGameBtnGO.SetActive(true);
     }
 }
 

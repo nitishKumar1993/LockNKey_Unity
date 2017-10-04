@@ -10,8 +10,7 @@ public class NetworkManagerCustom : NetworkLobbyManager {
 
     // Use this for initialization
     void Start () {
-		
-	}
+    }
 
     public void StartHosting()
     {
@@ -22,16 +21,21 @@ public class NetworkManagerCustom : NetworkLobbyManager {
         else Debug.Log("Already hosting");
     }
 
+    public void LoadGameScene()
+    {
+        ServerChangeScene("Game");
+    }
+
     public override void OnLobbyClientConnect(NetworkConnection conn)
     {
         //Debug.Log("OnLobbyClientConnect connectionId : " + conn.connectionId);
-      //  LobbyManager.Instance.OnClientEnterLobby(conn.connectionId);
+        //  LobbyManager.Instance.OnClientEnterLobby(conn.connectionId);
     }
 
     public override void OnLobbyServerConnect(NetworkConnection conn)
     {
-       // Debug.Log("OnLobbyServerConnect connectionId : " + conn.connectionId);
-      //  LobbyManager.Instance.OnClientEnterLobby(conn.connectionId);
+        // Debug.Log("OnLobbyServerConnect connectionId : " + conn.connectionId);
+        //  LobbyManager.Instance.OnClientEnterLobby(conn.connectionId);
     }
 
     public override void OnLobbyServerPlayersReady()
