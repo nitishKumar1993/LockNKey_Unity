@@ -8858,7 +8858,7 @@ GameObject:
   - component: {fileID: 1126197514}
   m_Layer: 5
   m_Name: InGameCanvas
-  m_TagString: Untagged
+  m_TagString: InGameCanvas
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -16881,34 +16881,14 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 2122842764}
-  - component: {fileID: 2122842763}
   - component: {fileID: 2122842765}
   m_Layer: 0
-  m_Name: Managers
+  m_Name: SkillManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &2122842763
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 2122842762}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a264e0c5a3c15fc43a772dfcd8fa7b80, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_gameWaterHeight: -3
-  m_gameDurationInMins: 0.5
-  m_islandsList:
-  - {fileID: 758108456}
-  - {fileID: 302358240}
-  - {fileID: 1431076496}
-  - {fileID: 426413297}
-  - {fileID: 301908875}
 --- !u!4 &2122842764
 Transform:
   m_ObjectHideFlags: 0
@@ -16934,7 +16914,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_skillsPrefabArray:
-  - {fileID: 114862990531059846, guid: 01154f87574c989409f54deec7da5e53, type: 2}
+  - m_skillType: 0
+    m_skillPrefab: {fileID: 1885317356090738, guid: 01154f87574c989409f54deec7da5e53,
+      type: 2}
+    m_positionToSpawnAt: {x: 0, y: 0, z: 0}
 --- !u!1001 &2129542042
 Prefab:
   m_ObjectHideFlags: 0

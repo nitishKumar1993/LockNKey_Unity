@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Networking;
 
 public class SkillsManager : MonoBehaviour
 {
     public static SkillsManager Instance;
 
-    public SkillBehaviour[] m_skillsPrefabArray;
+    public Skill[] m_skillsPrefabArray;
 
     private SkillData[] m_allSkillsData;
 
@@ -29,7 +30,7 @@ public class SkillsManager : MonoBehaviour
         switch (skillId)
         {
             case 0:
-                CreateAfterImage(sourcePlayerGO, skillId);
+                CreateAfterImage(sourcePlayerGO);
                 break;
             case 1:
                 break;
@@ -42,25 +43,37 @@ public class SkillsManager : MonoBehaviour
         }
     }
 
-    void CreateAfterImage(GameObject playerGO, int skillId)
+    void CreateAfterImage(GameObject sourcePlayerGO)
     {
-        Debug.Log("CreateAfterImage");
+        Skill thisSkill = GetSkillOfType(SkillType.AfterImage);
 
-        StartCoroutine(CreateAfterImageCR(playerGO, skillId));
+        GameObject tempCopy = Instantiate(thisSkill.m_skillPrefab, sourcePlayerGO.transform.position + thisSkill.m_positionToSpawnAt, sourcePlayerGO.transform.rotation);
+        tempCopy.GetComponent<AfterImageLogic>().Init(sourcePlayerGO);
+        LobbyManager.Instance.NetworkManager.SpawnGO(tempCopy);
     }
 
-    IEnumerator CreateAfterImageCR(GameObject playerGO, int skillId)
+    public Skill GetSkillOfType(SkillType type)
     {
-        GameObject tempCopy = Instantiate(playerGO, playerGO.transform.position + playerGO.transform.forward, playerGO.transform.rotation);
-        tempCopy.GetComponent<NavMeshAgent>().SetDestination(tempCopy.transform.position + tempCopy.transform.forward * 20);
-        tempCopy.GetComponent<Player>().PlayerAnimator.SetFloat("WalkSpeed", 1);
-        Destroy(tempCopy.GetComponent<Player>());
+        Skill tempSkill = null;
 
-        NavMeshAgent mNavMeshAgent = tempCopy.GetComponent<NavMeshAgent>();
-        while (Vector3.Distance(mNavMeshAgent.destination, mNavMeshAgent.transform.position) > mNavMeshAgent.stoppingDistance)
+        for (int i = 0; i < m_skillsPrefabArray.Length; i++)
         {
-            yield return null;
+            if(m_skillsPrefabArray[i].m_skillType == type)
+            {
+                tempSkill = m_skillsPrefabArray[i];
+                return tempSkill;
+            }
         }
-        Destroy(tempCopy);
+        return tempSkill;
     }
 }
+
+[System.Serializable]
+public class Skill
+{
+    public SkillType m_skillType;
+    public GameObject m_skillPrefab;
+    public Vector3 m_positionToSpawnAt;
+}
+
+public enum SkillType { AfterImage}

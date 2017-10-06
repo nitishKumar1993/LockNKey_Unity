@@ -217,7 +217,7 @@ public class LobbyManager : MonoBehaviour
             GameManager.Instance.CurrentLobbyPlayer.OnHeroSelected(GameManager.Instance.CurrentPlayerSlot, m_selectedHeroData);
             m_heroSelectionConfirmBtnGO.SetActive(false);
 
-            m_heroSelectionStatusText.text = "Hero Selected";
+            m_heroSelectionStatusText.text = "Heroes Selected";
 
             m_heroSelectionContentGO.transform.parent.parent.gameObject.SetActive(false);
             m_heroSelectionSelectedHeroGO.SetActive(true);

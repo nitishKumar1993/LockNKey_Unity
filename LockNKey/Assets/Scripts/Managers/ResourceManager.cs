@@ -22,7 +22,7 @@ public class ResourceManager {
                 tempData.m_heroType = heroTypeId == 0 ? HeroType.Chaser : HeroType.Runner;
                 tempData.m_name = tempArray[1];
                 tempData.m_skillID = System.Int32.Parse(tempArray[2]);
-                tempData.m_movementSpeed = System.Int32.Parse(tempArray[3]);
+                tempData.m_movementSpeed = float.Parse(tempArray[3]);
                 tempHeroesDataArray[i -1] = tempData;
             }
             else
@@ -60,7 +60,7 @@ public struct HeroData
     public HeroType m_heroType;
     public string m_name;
     public int m_skillID;
-    public int m_movementSpeed;
+    public float m_movementSpeed;
 }
 
 public struct SkillData

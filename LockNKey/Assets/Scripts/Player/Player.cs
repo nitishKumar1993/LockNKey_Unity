@@ -22,6 +22,9 @@ public class Player : NetworkBehaviour
     bool m_isDead = false;
     bool isTouchingGround = true;
 
+    float m_currentMovementSpeed;
+    Vector3 m_currentPlayerPosition;
+
     public bool MovementAllowed
     {
         get
@@ -56,62 +59,94 @@ public class Player : NetworkBehaviour
 
     void Init()
     {
-        m_playerHeroData = GameManager.Instance.AllHeroesData[m_heroID];
-        if (this.isLocalPlayer)
-        {
-            Camera.main.gameObject.GetComponent<CameraController>().PlayerGO = this.gameObject;
-        }
-    }
+        if (!this.isLocalPlayer)
+            return;
 
+        m_playerHeroData = GameManager.Instance.AllHeroesData[m_heroID];
+        Camera.main.gameObject.GetComponent<CameraController>().PlayerGO = this.gameObject;
+        m_currentMovementSpeed = (m_playerHeroData.m_movementSpeed);
+        m_currentPlayerPosition = this.transform.position;
+        GameManager.Instance.SetSkillButtonHandler(UseSkill);
+    }
 
     void FixedUpdate()
     {
         if (this.isLocalPlayer)
-        {
-            if (!m_isDead && isTouchingGround)
-            {
-                if ((Mathf.Abs(CnInputManager.GetAxis("Horizontal")) > 0 || Mathf.Abs(CnInputManager.GetAxis("Vertical")) > 0) && !MovementAllowed)
-                {
-                    float temp = Mathf.Max(Mathf.Abs(CnInputManager.GetAxis("Horizontal")), Mathf.Abs(CnInputManager.GetAxis("Vertical")));
-                    PlayerAnimator.SetFloat("WalkSpeed", temp);
+            Move(CnInputManager.GetAxis("Horizontal"), CnInputManager.GetAxis("Vertical"));
 
-                    Vector3 m_nextPos = new Vector3(CnInputManager.GetAxis("Horizontal"), 0, CnInputManager.GetAxis("Vertical"));
-                    this.transform.position += (m_nextPos * 10 * m_playerHeroData.m_movementSpeed / 100) * Time.deltaTime;
-                    transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(m_nextPos), Time.deltaTime * 10);
-                }
-                else
-                {
-                    PlayerAnimator.SetFloat("WalkSpeed", 0);
-                }
-            }
-            else
+        if (!m_isDead)
+            PlayerAnimator.SetFloat("WalkSpeed", Vector3.Distance(this.transform.position, m_currentPlayerPosition) * 5);
+        else PlayerAnimator.SetBool("Dead", true);
+
+        m_currentPlayerPosition = this.transform.position;
+    }
+
+    void Move(float xInput, float yInput)
+    {
+        if (!m_isDead && isTouchingGround)
+        {
+            if ((Mathf.Abs(xInput) > 0 || Mathf.Abs(yInput) > 0) && !MovementAllowed)
             {
-                PlayerAnimator.SetFloat("WalkSpeed", 0);
-                PlayerAnimator.SetBool("Dead", true);
+                Vector3 m_nextPos = new Vector3(xInput, 0, yInput);
+                this.transform.position = Vector3.Lerp(this.transform.position, this.transform.position + m_nextPos * m_currentMovementSpeed, 0.05f);
+                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(m_nextPos), Time.deltaTime * 10);
             }
         }
     }
 
     public void UseSkill()
     {
+        if (isServer)
+            RpcUseSkill();
+        else
+        {
+            SkillsManager.Instance.UseSkill(this.gameObject, m_playerHeroData.m_skillID);
+            CmdUseSkill();
+        }
+    }
+
+    [Command]
+    void CmdUseSkill()
+    {
         SkillsManager.Instance.UseSkill(this.gameObject, m_playerHeroData.m_skillID);
     }
 
+    [ClientRpc]
+    void RpcUseSkill()
+    {
+        SkillsManager.Instance.UseSkill(this.gameObject, m_playerHeroData.m_skillID);
+    }
+
+    [Server]
     public void OnEnterWater()
+    {
+        RpcOnEnterWater();
+    }
+
+    [ClientRpc]
+    void RpcOnEnterWater()
     {
         m_isDead = true;
         Instantiate(m_splashPrefab, this.transform.position + this.transform.forward, Quaternion.identity);
         Debug.Log("Dead");
     }
 
+    [Server]
     private void OnCollisionStay(Collision collision)
     {
         for (int i = 0; i < collision.contacts.Length; i++)
         {
-           if(this.transform.position.y - collision.contacts[i].point.y < -0.5f)
+            if (this.transform.position.y - collision.contacts[i].point.y < -0.5f && collision.contacts[i].thisCollider.gameObject.tag == "Island")
             {
-                isTouchingGround = false;
+                RpcOnGroundTouchingStopped();
             }
         }
+    }
+
+    [ClientRpc]
+    void RpcOnGroundTouchingStopped()
+    {
+        isTouchingGround = false;
+        Debug.Log("HasStoppedTouchingGround");
     }
 }

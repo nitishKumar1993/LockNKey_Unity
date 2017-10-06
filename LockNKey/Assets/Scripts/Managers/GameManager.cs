@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class GameManager : NetworkBehaviour
 {
@@ -28,6 +30,8 @@ public class GameManager : NetworkBehaviour
     private LobbyPlayer currentLobbyPlayer;
 
     private HeroData currentPlayerHeroData;
+
+    private GameObject m_inGameCanvas;
 
     public SyncListInt FinalHeroTypeSelection
     {
@@ -125,6 +129,15 @@ public class GameManager : NetworkBehaviour
     void Start()
     {
         // StartCoroutine(RemoveIslands());
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if(scene.buildIndex == 1)
+        {
+            m_inGameCanvas = GameObject.FindGameObjectWithTag("InGameCanvas");
+        }
     }
 
     public void UpdatePlayersName(string name)
@@ -211,6 +224,12 @@ public class GameManager : NetworkBehaviour
             }
         }
         return tempNo;
+    }
+
+    public void SetSkillButtonHandler(UnityEngine.Events.UnityAction action)
+    {
+        Button skillBtn = m_inGameCanvas.transform.Find("SkillBtn").GetComponent<Button>();
+        skillBtn.onClick.AddListener(action);
     }
 
     IEnumerator RemoveIslands()

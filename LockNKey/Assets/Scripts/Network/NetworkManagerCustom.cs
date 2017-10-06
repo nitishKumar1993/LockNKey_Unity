@@ -52,4 +52,9 @@ public class NetworkManagerCustom : NetworkLobbyManager {
     {
         Debug.Log("OnLobbyStartHost");
     }
+
+    public void SpawnGO(GameObject GO)
+    {
+        NetworkServer.Spawn(GO);
+    }
 }

@@ -7,6 +7,7 @@ TagManager:
   - Island
   - LANLobbyContainer
   - NetworkManager
+  - InGameCanvas
   layers:
   - Default
   - TransparentFX
