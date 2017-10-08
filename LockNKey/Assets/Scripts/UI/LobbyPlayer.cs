@@ -45,7 +45,7 @@ public class LobbyPlayer : NetworkLobbyPlayer {
         {
             SendReadyToBeginMessage();
         }
-        LobbyManager.Instance.OnClientEnterLobby(this, slot, isLocalPlayer);
+        GetPlayerName();
     }
    
     public void OnHeroSelected(int playerIndex, HeroData heroData)
@@ -57,6 +57,50 @@ public class LobbyPlayer : NetworkLobbyPlayer {
     void CmdOnHeroSelected(int playerIndex, HeroData heroData)
     {
         GameManager.Instance.OnHeroSelectedCallBack(playerIndex, heroData);
+    }
+
+    public void GetPlayerName()
+    {
+        Debug.Log(isLocalPlayer);
+        Debug.Log(isServer);
+        if (isLocalPlayer)
+        {
+            LobbyManager.Instance.OnClientEnterLobby(this, slot, isLocalPlayer, LobbyManager.Instance.CurrentPlayerName);
+        }
+        else
+        {
+            if (isServer)
+                RpcGetName();
+            else
+            {
+                LobbyManager.Instance.OnClientEnterLobby(this, slot, isLocalPlayer, LobbyManager.Instance.CurrentPlayerName);
+                //CmdGetName();
+            }
+        }
+    }
+
+    [ClientRpc]
+    void RpcGetName()
+    {
+        CmdSendName(LobbyManager.Instance.CurrentPlayerName);
+    }
+
+    [Command]
+    void CmdGetName()
+    {
+        RpcSendName(LobbyManager.Instance.CurrentPlayerName);
+    }
+
+    [ClientRpc]
+    void RpcSendName(string name)
+    {
+        LobbyManager.Instance.OnClientEnterLobby(this, slot, isLocalPlayer,name);
+    }
+
+    [Command]
+    void CmdSendName(string name)
+    {
+        LobbyManager.Instance.OnClientEnterLobby(this, slot, isLocalPlayer, name);
     }
 
     public override void OnClientEnterLobby()

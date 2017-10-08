@@ -1223,7 +1223,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 80
+  m_Constraints: 112
   m_CollisionDetection: 0
 --- !u!95 &95044565190505490
 Animator:
@@ -1288,7 +1288,7 @@ MonoBehaviour:
   m_playerAnimator: {fileID: 95044565190505490}
   m_splashPrefab: {fileID: 1833123515141062, guid: d68b14fbf5047674e89684a9657c9194,
     type: 2}
-  m_heroID: 0
+  CurrentPlayerSlot: -1
 --- !u!114 &114731146594098280
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1308,7 +1308,7 @@ MonoBehaviour:
   m_MovementTheshold: 0.001
   m_VelocityThreshold: 0.0001
   m_SnapThreshold: 5
-  m_InterpolateRotation: 10
+  m_InterpolateRotation: 30
   m_InterpolateMovement: 1
 --- !u!136 &136370842079514798
 CapsuleCollider:

@@ -164,6 +164,7 @@ public class LobbyManager : MonoBehaviour
     public void OnLANBtnClick()
     {
         ChangePlayScreen(PlayScreen.LAN);
+        ClearRoomContent();
         NDiscovery.Instance.Initialize();
         FindGames();
     }
@@ -267,13 +268,12 @@ public class LobbyManager : MonoBehaviour
         UpdateRoomsList(fromIp + "," + data);
     }
 
-    public void OnClientEnterLobby(LobbyPlayer player, int id,bool isLocal)
+    public void OnClientEnterLobby(LobbyPlayer player, int id,bool isLocal, string name)
     {
         if (isLocal)
         {
             GameManager.Instance.CurrentLobbyPlayer = player;
             GameManager.Instance.CurrentPlayerSlot = id;
-            GameManager.Instance.UpdatePlayersName(CurrentPlayerName);
         }
         ChangePlayScreen(PlayScreen.PlayerLobby);
 
@@ -282,8 +282,11 @@ public class LobbyManager : MonoBehaviour
         {
             if (i <= id)
             {
-                m_playerLobbyContainerGO.transform.GetChild(i).Find("Image").GetComponent<Image>().color = Color.white;
-                m_playerLobbyContainerGO.transform.GetChild(i).Find("PlayerName").GetComponent<Text>().text = GameManager.Instance.m_playersNameList[i];
+                if (i == id)
+                {
+                    m_playerLobbyContainerGO.transform.GetChild(i).Find("Image").GetComponent<Image>().color = Color.white;
+                    m_playerLobbyContainerGO.transform.GetChild(i).Find("PlayerName").GetComponent<Text>().text = name;
+                }
             }
             else
             {
@@ -456,7 +459,7 @@ public class LobbyManager : MonoBehaviour
         int index = int.Parse(toggle.transform.parent.name.Remove(0, 6));
         if (toggle.isOn)
         {
-            GameManager.Instance.SetFinalHeroArray(index);
+            GameManager.Instance.SetFinalHeroTypeArray(index - 1);
         }
 
         int playersNo = 0;
@@ -471,8 +474,9 @@ public class LobbyManager : MonoBehaviour
         m_playerLobbyEnterHeroeSelectionBtn.SetActive(index <= playersNo ? true : false);
     }
 
-    public void ShowHeroSelection(int heroType)
+    public void ShowHeroSelection(int playerSlot)
     {
+        int heroType = GameManager.Instance.FinalHeroTypeSelection[playerSlot];
         ChangePlayScreen(PlayScreen.HeroSelection);
         UpdateHeroSelectionScreen(heroType);
     }

@@ -13,9 +13,6 @@ public class Player : NetworkBehaviour
     [SerializeField]
     private GameObject m_splashPrefab;
 
-    [SerializeField]
-    int m_heroID = 0;
-
     HeroData m_playerHeroData;
 
     bool m_movementAllowed = false;
@@ -24,6 +21,8 @@ public class Player : NetworkBehaviour
 
     float m_currentMovementSpeed;
     Vector3 m_currentPlayerPosition;
+
+    public int CurrentPlayerSlot = -1;
 
     public bool MovementAllowed
     {
@@ -51,22 +50,50 @@ public class Player : NetworkBehaviour
         }
     }
 
-    // Use this for initialization
     void Start()
     {
+        Invoke("Initialize", 1);
+    }
+
+    void Initialize()
+    {
+        Debug.Log(this.isLocalPlayer);
+        if (isLocalPlayer)
+        {
+            CurrentPlayerSlot = GameManager.Instance.CurrentPlayerSlot;
+            CmdSetCurrentSlot(CurrentPlayerSlot);
+        }
+    }
+
+    [Command]
+    void CmdSetCurrentSlot(int slot)
+    {
+        Debug.Log("CmdSetCurrentSlot :" + slot);
+        CurrentPlayerSlot = slot;
+        RpcSetCurrentSlot(slot);
+    }
+
+    [ClientRpc]
+    void RpcSetCurrentSlot(int slot)
+    {
+        Debug.Log("RpcSetCurrentSlot :" + slot);
+        CurrentPlayerSlot = slot;
         Init();
     }
 
     void Init()
     {
+        m_playerHeroData = GameManager.Instance.FinalHeroSelectionList[CurrentPlayerSlot];
+        Debug.Log(m_playerHeroData.m_name);
+
         if (!this.isLocalPlayer)
             return;
 
-        m_playerHeroData = GameManager.Instance.AllHeroesData[m_heroID];
         Camera.main.gameObject.GetComponent<CameraController>().PlayerGO = this.gameObject;
         m_currentMovementSpeed = (m_playerHeroData.m_movementSpeed);
         m_currentPlayerPosition = this.transform.position;
         GameManager.Instance.SetSkillButtonHandler(UseSkill);
+        GameManager.Instance.CurrentPlayer = this ;
     }
 
     void FixedUpdate()

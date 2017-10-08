@@ -24,10 +24,9 @@ public class GameManager : NetworkBehaviour
 
     private HeroData[] m_allHeroesData;
 
-    public SyncListString m_playersNameList = new SyncListString();
-
     private int currentPlayerSlot;
     private LobbyPlayer currentLobbyPlayer;
+    private Player currentPlayer;
 
     private HeroData currentPlayerHeroData;
 
@@ -111,6 +110,32 @@ public class GameManager : NetworkBehaviour
         }
     }
 
+    public Player CurrentPlayer
+    {
+        get
+        {
+            return currentPlayer;
+        }
+
+        set
+        {
+            currentPlayer = value;
+        }
+    }
+
+    public List<HeroData> FinalHeroSelectionList
+    {
+        get
+        {
+            return m_finalHeroSelectionList;
+        }
+
+        set
+        {
+            m_finalHeroSelectionList = value;
+        }
+    }
+
     void Awake()
     {
         if (GameManager.Instance == null)
@@ -140,29 +165,16 @@ public class GameManager : NetworkBehaviour
         }
     }
 
-    public void UpdatePlayersName(string name)
-    {
-        if (m_playersNameList.Count != 4)
-        {
-            m_playersNameList.Clear();
-            for (int i = 0; i < 4; i++)
-            {
-                m_playersNameList.Add("");
-            }
-        }
-        m_playersNameList[currentPlayerSlot] = name;
-    }
-
-    public void SetFinalHeroArray(int chaserIndex)
+    public void SetFinalHeroTypeArray(int chaserIndex)
     {
         FinalHeroTypeSelection.Clear();
         for (int i = 0; i < 4; i++)
         {
             if (i == chaserIndex)
             {
-                FinalHeroTypeSelection.Add(1);
+                FinalHeroTypeSelection.Add(0);
             }
-            else FinalHeroTypeSelection.Add(0);
+            else FinalHeroTypeSelection.Add(1);
         }
     }
 
@@ -188,37 +200,50 @@ public class GameManager : NetworkBehaviour
         LobbyManager.Instance.ShowHeroSelection(currentPlayerSlot);
     }
 
-    [ClientRpc]
-    void RpcLoadGameScene()
-    {
-        LobbyManager.Instance.NetworkManager.LoadGameScene();
-    }
-
     public void OnHeroSelectedCallBack(int playerIndex, HeroData heroData)
     {
-        if (m_finalHeroSelectionList.Count < 4)
+        if (FinalHeroSelectionList.Count < 4)
         {
-            m_finalHeroSelectionList = new List<HeroData>();
+            FinalHeroSelectionList = new List<HeroData>();
             for (int i = 0; i < 4; i++)
             {
-                m_finalHeroSelectionList.Add(new HeroData());
+                FinalHeroSelectionList.Add(new HeroData());
             }
         }
 
-        m_finalHeroSelectionList[playerIndex] = heroData;
+        FinalHeroSelectionList[playerIndex] = heroData;
+
+        for (int i = 0; i < FinalHeroSelectionList.Count; i++)
+        {
+            Debug.Log(FinalHeroSelectionList.ToArray()[i].m_name);
+        }
 
         if (GetReadyPlayersHeroCount() >= NetworkServer.connections.Count)
         {
+            RpcSetFinalHeroSelectionList(FinalHeroSelectionList.ToArray());
             LobbyManager.Instance.ShowEnterGameBtn();
         }
     }
 
+    [ClientRpc]
+    void RpcSetFinalHeroSelectionList(HeroData[] heroList)
+    {
+        List<HeroData> tempList = new List<HeroData>();
+        for (int i = 0; i < heroList.Length; i++)
+        {
+            tempList.Add(heroList[i]);
+            Debug.Log(heroList[i].m_name);
+        }
+        FinalHeroSelectionList = tempList;
+    }
+
+
     int GetReadyPlayersHeroCount()
     {
         int tempNo = 0;
-        for (int i = 0; i < m_finalHeroSelectionList.Count; i++)
+        for (int i = 0; i < FinalHeroSelectionList.Count; i++)
         {
-            if(m_finalHeroSelectionList[i].m_name  != null)
+            if(FinalHeroSelectionList[i].m_name  != null)
             {
                 tempNo++;
             }
