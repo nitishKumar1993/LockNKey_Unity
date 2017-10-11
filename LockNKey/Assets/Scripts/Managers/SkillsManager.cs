@@ -40,6 +40,12 @@ public class SkillsManager : MonoBehaviour
                 break;
             case 4:
                 break;
+            case 5:
+                break;
+            case 6:
+                break;
+            case 7:
+                break;
         }
     }
 

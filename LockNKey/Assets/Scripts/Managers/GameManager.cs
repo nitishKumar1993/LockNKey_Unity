@@ -11,11 +11,9 @@ public class GameManager : NetworkBehaviour
 
     [SerializeField]
     private float m_gameWaterHeight;
-
     [SerializeField]
     private float m_gameDurationInMins;
 
-    [SerializeField]
     private List<GameObject> m_islandsList = new List<GameObject>();
 
     public SyncListInt m_finalHeroTypeSelection = new SyncListInt();
@@ -31,6 +29,11 @@ public class GameManager : NetworkBehaviour
     private HeroData currentPlayerHeroData;
 
     private GameObject m_inGameCanvas;
+
+    private int m_totalPlayersReady = 0;
+
+    public bool isTesting = false;
+    public int testHeroID = 0;
 
     public SyncListInt FinalHeroTypeSelection
     {
@@ -153,15 +156,27 @@ public class GameManager : NetworkBehaviour
 
     void Start()
     {
-        // StartCoroutine(RemoveIslands());
         SceneManager.sceneLoaded += OnSceneLoaded;
+
+        //Test code
+        if (isTesting)
+        {
+            m_inGameCanvas = GameObject.FindGameObjectWithTag("InGameCanvas");
+        }
     }
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if(scene.buildIndex == 1)
+        if (scene.buildIndex == 1)
         {
             m_inGameCanvas = GameObject.FindGameObjectWithTag("InGameCanvas");
+            GameObject[] islandsArray = GameObject.FindGameObjectsWithTag("Island");
+            for (int i = 0; i < islandsArray.Length; i++)
+            {
+                m_islandsList.Add(islandsArray[i]);
+            }
+            if (m_islandsList.Count == 0)
+                Debug.Log("Couldnt find any island in the scene.");
         }
     }
 
@@ -212,12 +227,6 @@ public class GameManager : NetworkBehaviour
         }
 
         FinalHeroSelectionList[playerIndex] = heroData;
-
-        for (int i = 0; i < FinalHeroSelectionList.Count; i++)
-        {
-            Debug.Log(FinalHeroSelectionList.ToArray()[i].m_name);
-        }
-
         if (GetReadyPlayersHeroCount() >= NetworkServer.connections.Count)
         {
             RpcSetFinalHeroSelectionList(FinalHeroSelectionList.ToArray());
@@ -232,11 +241,9 @@ public class GameManager : NetworkBehaviour
         for (int i = 0; i < heroList.Length; i++)
         {
             tempList.Add(heroList[i]);
-            Debug.Log(heroList[i].m_name);
         }
         FinalHeroSelectionList = tempList;
     }
-
 
     int GetReadyPlayersHeroCount()
     {
@@ -257,7 +264,54 @@ public class GameManager : NetworkBehaviour
         skillBtn.onClick.AddListener(action);
     }
 
-    IEnumerator RemoveIslands()
+    [Server]
+    public void SetPlayerReady()
+    {
+        m_totalPlayersReady++;
+        Debug.Log("SetPlayerReady : " + m_totalPlayersReady);
+        if (m_totalPlayersReady >= NetworkServer.connections.Count)
+        {
+            StartGame();
+        }
+    }
+
+    void StartGame()
+    {
+        StartTimer();
+        RemoveIslands();
+    }
+
+    void StartTimer()
+    {
+        Debug.Log("StartTimer :" + m_gameDurationInMins);
+        StartCoroutine(TimerCR());
+    }
+
+    IEnumerator TimerCR()
+    {
+        int tempTimer = (int)(m_gameDurationInMins * 60);
+
+        while (tempTimer > 0)
+        {
+            tempTimer --;
+            RpcUpdateClientTimerUI(tempTimer);
+            yield return new WaitForSeconds(1);
+        }
+    }
+
+    [ClientRpc]
+    void RpcUpdateClientTimerUI(int timer)
+    {
+        InGameUIManager.Instance.UpdateTimerUI(timer);
+    }
+
+    [Server]
+    void RemoveIslands()
+    {
+        StartCoroutine(RemoveIslandsCR());
+    }
+
+    IEnumerator RemoveIslandsCR()
     {
         float totalGameDuration = m_gameDurationInMins * 60;
         float currentGameDuration = totalGameDuration / m_islandsList.Count;
@@ -269,12 +323,18 @@ public class GameManager : NetworkBehaviour
             if (currentGameDuration <= 0)
             {
                 // Debug.Log("Remove islands");
-                m_islandsList[m_islandsList.Count - 1].GetComponent<IslandBehaviour>().RemoveIsland();
+                RpcRemoveIsland();
 
-                m_islandsList.RemoveAt(m_islandsList.Count - 1);
                 currentGameDuration = totalGameDuration / m_islandsList.Count;
             }
             yield return null;
         }
+    }
+
+    [ClientRpc]
+    void RpcRemoveIsland()
+    {
+        m_islandsList[m_islandsList.Count - 1].GetComponent<IslandBehaviour>().RemoveIsland();
+        m_islandsList.RemoveAt(m_islandsList.Count - 1);
     }
 }

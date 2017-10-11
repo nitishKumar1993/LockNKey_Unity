@@ -61,8 +61,6 @@ public class LobbyPlayer : NetworkLobbyPlayer {
 
     public void GetPlayerName()
     {
-        Debug.Log(isLocalPlayer);
-        Debug.Log(isServer);
         if (isLocalPlayer)
         {
             LobbyManager.Instance.OnClientEnterLobby(this, slot, isLocalPlayer, LobbyManager.Instance.CurrentPlayerName);

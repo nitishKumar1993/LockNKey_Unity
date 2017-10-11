@@ -8,16 +8,20 @@ using UnityEngine.Networking;
 public class Player : NetworkBehaviour
 {
     [SerializeField]
+    private GameObject m_playerMeshHolderGO;
+
+    [SerializeField]
     private Animator m_playerAnimator;
 
     [SerializeField]
     private GameObject m_splashPrefab;
 
-    HeroData m_playerHeroData;
+    private HeroData m_playerHeroData;
 
     bool m_movementAllowed = false;
     bool m_isDead = false;
     bool isTouchingGround = true;
+    bool m_isFronze = false;
 
     float m_currentMovementSpeed;
     Vector3 m_currentPlayerPosition;
@@ -36,23 +40,41 @@ public class Player : NetworkBehaviour
             m_movementAllowed = value;
         }
     }
-
-    public Animator PlayerAnimator
+    
+    public HeroData PlayerHeroData
     {
         get
         {
-            return m_playerAnimator;
+            return m_playerHeroData;
         }
 
         set
         {
-            m_playerAnimator = value;
+            m_playerHeroData = value;
+        }
+    }
+
+    public bool IsFronze
+    {
+        get
+        {
+            return m_isFronze;
+        }
+
+        set
+        {
+            m_isFronze = value;
         }
     }
 
     void Start()
     {
-        Invoke("Initialize", 1);
+        if (GameManager.Instance.isTesting)
+        {
+            Initialize();
+        }
+        else
+            Invoke("Initialize", 1);
     }
 
     void Initialize()
@@ -62,6 +84,10 @@ public class Player : NetworkBehaviour
         {
             CurrentPlayerSlot = GameManager.Instance.CurrentPlayerSlot;
             CmdSetCurrentSlot(CurrentPlayerSlot);
+        }
+        else if (GameManager.Instance.isTesting)
+        {
+            Init();
         }
     }
 
@@ -83,27 +109,54 @@ public class Player : NetworkBehaviour
 
     void Init()
     {
-        m_playerHeroData = GameManager.Instance.FinalHeroSelectionList[CurrentPlayerSlot];
-        Debug.Log(m_playerHeroData.m_name);
+        PlayerHeroData = GameManager.Instance.isTesting ? GameManager.Instance.AllHeroesData[GameManager.Instance.testHeroID] : GameManager.Instance.FinalHeroSelectionList[CurrentPlayerSlot];
+        GameManager.Instance.SetPlayerReady();
+        SetMeshPlayer();
 
-        if (!this.isLocalPlayer)
+        if (!this.isLocalPlayer && !GameManager.Instance.isTesting)
             return;
 
         Camera.main.gameObject.GetComponent<CameraController>().PlayerGO = this.gameObject;
-        m_currentMovementSpeed = (m_playerHeroData.m_movementSpeed);
+        m_currentMovementSpeed = (PlayerHeroData.m_movementSpeed);
         m_currentPlayerPosition = this.transform.position;
         GameManager.Instance.SetSkillButtonHandler(UseSkill);
         GameManager.Instance.CurrentPlayer = this ;
+        MovementAllowed = true;
+    }
+
+    void SetMeshPlayer()
+    {
+        string path = "Prefabs/Players/" + PlayerHeroData.m_heroType.ToString() + "/" + PlayerHeroData.m_name;
+        GameObject meshPrefab = Resources.Load<GameObject>(path) as GameObject;
+
+        if(meshPrefab)
+        {
+            if(m_playerMeshHolderGO.transform.childCount > 0)
+            {
+                Destroy(m_playerMeshHolderGO.transform.GetChild(0));
+            }
+
+            GameObject currentMeshGo = Instantiate(meshPrefab, m_playerMeshHolderGO.transform);
+            currentMeshGo.transform.localPosition = Vector3.zero + meshPrefab.transform.position;
+            m_playerAnimator = currentMeshGo.GetComponent<Animator>();
+        }
+        else
+        {
+            Debug.Log("Couldnt find mesh at path :" + path);
+        }
     }
 
     void FixedUpdate()
     {
-        if (this.isLocalPlayer)
+        if (this.isLocalPlayer || GameManager.Instance.isTesting)
             Move(CnInputManager.GetAxis("Horizontal"), CnInputManager.GetAxis("Vertical"));
 
-        if (!m_isDead)
-            PlayerAnimator.SetFloat("WalkSpeed", Vector3.Distance(this.transform.position, m_currentPlayerPosition) * 5);
-        else PlayerAnimator.SetBool("Dead", true);
+        if (m_playerAnimator != null)
+        {
+            if (!m_isDead)
+                m_playerAnimator.SetFloat("WalkSpeed", Vector3.Distance(this.transform.position, m_currentPlayerPosition) * 5);
+            else m_playerAnimator.SetBool("Dead", true);
+        }
 
         m_currentPlayerPosition = this.transform.position;
     }
@@ -112,7 +165,7 @@ public class Player : NetworkBehaviour
     {
         if (!m_isDead && isTouchingGround)
         {
-            if ((Mathf.Abs(xInput) > 0 || Mathf.Abs(yInput) > 0) && !MovementAllowed)
+            if ((Mathf.Abs(xInput) > 0 || Mathf.Abs(yInput) > 0) && MovementAllowed)
             {
                 Vector3 m_nextPos = new Vector3(xInput, 0, yInput);
                 this.transform.position = Vector3.Lerp(this.transform.position, this.transform.position + m_nextPos * m_currentMovementSpeed, 0.05f);
@@ -127,21 +180,43 @@ public class Player : NetworkBehaviour
             RpcUseSkill();
         else
         {
-            SkillsManager.Instance.UseSkill(this.gameObject, m_playerHeroData.m_skillID);
+            SkillsManager.Instance.UseSkill(this.gameObject, PlayerHeroData.m_skillID);
             CmdUseSkill();
         }
+    }
+
+    public void Freeze(bool action)
+    {
+        OnFreeze(action);
+        RpcFreeze(action);
+    }
+
+    void OnFreeze(bool action)
+    {
+        Debug.Log("OnFreeze :" + action + " for Hero: " + PlayerHeroData.m_name);
+        MovementAllowed = !action;
+        IsFronze = action;
+        this.GetComponent<Rigidbody>().isKinematic = action;
+        m_playerMeshHolderGO.transform.GetChild(0).GetComponent<PlayerMesh>().Freeze(true);
+        m_playerAnimator.speed = action ? 0 : 1;
+    }
+
+    [ClientRpc]
+    public void RpcFreeze(bool action)
+    {
+        OnFreeze(action);
     }
 
     [Command]
     void CmdUseSkill()
     {
-        SkillsManager.Instance.UseSkill(this.gameObject, m_playerHeroData.m_skillID);
+        SkillsManager.Instance.UseSkill(this.gameObject, PlayerHeroData.m_skillID);
     }
 
     [ClientRpc]
     void RpcUseSkill()
     {
-        SkillsManager.Instance.UseSkill(this.gameObject, m_playerHeroData.m_skillID);
+        SkillsManager.Instance.UseSkill(this.gameObject, PlayerHeroData.m_skillID);
     }
 
     [Server]
@@ -166,6 +241,33 @@ public class Player : NetworkBehaviour
             if (this.transform.position.y - collision.contacts[i].point.y < -0.5f && collision.contacts[i].thisCollider.gameObject.tag == "Island")
             {
                 RpcOnGroundTouchingStopped();
+            }
+        }
+    }
+
+    [Server]
+    private void OnCollisionEnter(Collision collision)
+    {
+        for (int i = 0; i < collision.contacts.Length; i++)
+        {
+            if (collision.gameObject.tag == "Player")
+            {
+                Player otherPlayer = collision.gameObject.GetComponent<Player>();
+                if (otherPlayer)
+                {
+                    if (this.PlayerHeroData.m_heroType == HeroType.Chaser && otherPlayer.PlayerHeroData.m_heroType == HeroType.Runner)
+                    {
+                        otherPlayer.Freeze(true);
+                    }
+                    else if ((this.PlayerHeroData.m_heroType == HeroType.Runner && otherPlayer.PlayerHeroData.m_heroType == HeroType.Runner) && otherPlayer.IsFronze)
+                    {
+                        otherPlayer.Freeze(false);
+                    }
+                }
+                else
+                {
+                    Debug.Log("Player component not found on the player GO");
+                }
             }
         }
     }

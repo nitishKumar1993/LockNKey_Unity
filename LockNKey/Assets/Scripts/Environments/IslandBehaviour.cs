@@ -20,7 +20,7 @@ public class IslandBehaviour : MonoBehaviour
     {
         float shakeTime = 1.5f;
         float moveTime = 3;
-        Vector3 movePostion = this.transform.position - Vector3.up * 5;
+        Vector3 movePostion = this.transform.position - Vector3.up * 7;
 
         iTween.ShakePosition(this.gameObject, Vector3.up, shakeTime);
         yield return new WaitForSeconds(shakeTime);
