@@ -1,6 +1,6 @@
 Name,Cooldown,Duration
 AfterImage,3.5,1
-ShieldDash,5,0.75
+ShieldDash,5,0.3
 Blockbuster,3.5,3
-SuicideBomber,3.5,3
-Fear,3.5,3
+SuicideBomber,1,3
+Fear,1,1

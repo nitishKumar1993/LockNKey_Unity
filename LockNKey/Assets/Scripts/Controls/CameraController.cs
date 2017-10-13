@@ -6,6 +6,7 @@ public class CameraController : MonoBehaviour {
 
     [SerializeField]
     private GameObject m_playerGO;
+    private Player m_player;
 
     [SerializeField]
     private Vector3 m_cameraOffset;
@@ -14,6 +15,7 @@ public class CameraController : MonoBehaviour {
     private float m_smoothTime = 0.3f;
 
     private Vector3 m_smoothVelocity = Vector3.zero;
+    private Vector3 m_lastPlayerPos;
 
     public GameObject PlayerGO
     {
@@ -25,6 +27,7 @@ public class CameraController : MonoBehaviour {
         set
         {
             m_playerGO = value;
+            m_player = m_playerGO.GetComponent<Player>();
         }
     }
 
@@ -37,7 +40,9 @@ public class CameraController : MonoBehaviour {
 	void FixedUpdate () {
 		if(PlayerGO != null)
         {
-            this.transform.position = Vector3.SmoothDamp(this.transform.position, PlayerGO.transform.position + m_cameraOffset, ref m_smoothVelocity, m_smoothTime);
+            Vector3 movePos = !m_player.IsDead ? PlayerGO.transform.position + m_cameraOffset : m_lastPlayerPos + m_cameraOffset;
+            this.transform.position = Vector3.SmoothDamp(this.transform.position, movePos, ref m_smoothVelocity, m_smoothTime);
+            m_lastPlayerPos = !m_player.IsDead ? PlayerGO.transform.position : m_lastPlayerPos;
         }
 	}
 }

@@ -22,6 +22,8 @@ public class Player : NetworkBehaviour
     bool m_isDead = false;
     bool isTouchingGround = true;
     bool m_isFronze = false;
+    bool m_isImmune = false;
+    bool m_skillOnCD = false;
 
     float m_currentMovementSpeed;
     Vector3 m_currentPlayerPosition;
@@ -64,6 +66,32 @@ public class Player : NetworkBehaviour
         set
         {
             m_isFronze = value;
+        }
+    }
+
+    public bool IsDead
+    {
+        get
+        {
+            return m_isDead;
+        }
+
+        set
+        {
+            m_isDead = value;
+        }
+    }
+
+    public bool IsImmune
+    {
+        get
+        {
+            return m_isImmune;
+        }
+
+        set
+        {
+            m_isImmune = value;
         }
     }
 
@@ -112,6 +140,7 @@ public class Player : NetworkBehaviour
         PlayerHeroData = GameManager.Instance.isTesting ? GameManager.Instance.AllHeroesData[GameManager.Instance.testHeroID] : GameManager.Instance.FinalHeroSelectionList[CurrentPlayerSlot];
         GameManager.Instance.SetPlayerReady();
         SetMeshPlayer();
+        MoveToSpawnPos();
 
         if (!this.isLocalPlayer && !GameManager.Instance.isTesting)
             return;
@@ -122,6 +151,14 @@ public class Player : NetworkBehaviour
         GameManager.Instance.SetSkillButtonHandler(UseSkill);
         GameManager.Instance.CurrentPlayer = this ;
         MovementAllowed = true;
+    }
+
+    void MoveToSpawnPos()
+    {
+        if (PlayerHeroData.m_heroType == HeroType.Chaser)
+            PlayersSpawnManager.Instance.SpawnChaser(this.gameObject);
+        else if (PlayerHeroData.m_heroType == HeroType.Runner)
+            PlayersSpawnManager.Instance.SpawnRunner(this.gameObject);
     }
 
     void SetMeshPlayer()
@@ -148,14 +185,13 @@ public class Player : NetworkBehaviour
 
     void FixedUpdate()
     {
-        if (this.isLocalPlayer || GameManager.Instance.isTesting)
+        if ((this.isLocalPlayer || GameManager.Instance.isTesting) && !IsDead && isTouchingGround && MovementAllowed)
             Move(CnInputManager.GetAxis("Horizontal"), CnInputManager.GetAxis("Vertical"));
 
         if (m_playerAnimator != null)
         {
-            if (!m_isDead)
+            if (!IsDead)
                 m_playerAnimator.SetFloat("WalkSpeed", Vector3.Distance(this.transform.position, m_currentPlayerPosition) * 5);
-            else m_playerAnimator.SetBool("Dead", true);
         }
 
         m_currentPlayerPosition = this.transform.position;
@@ -163,15 +199,23 @@ public class Player : NetworkBehaviour
 
     void Move(float xInput, float yInput)
     {
-        if (!m_isDead && isTouchingGround)
+        if ((Mathf.Abs(xInput) > 0 || Mathf.Abs(yInput) > 0))
         {
-            if ((Mathf.Abs(xInput) > 0 || Mathf.Abs(yInput) > 0) && MovementAllowed)
-            {
-                Vector3 m_nextPos = new Vector3(xInput, 0, yInput);
-                this.transform.position = Vector3.Lerp(this.transform.position, this.transform.position + m_nextPos * m_currentMovementSpeed, 0.05f);
-                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(m_nextPos), Time.deltaTime * 10);
-            }
+            Vector3 nextPos = new Vector3(xInput, 0, yInput);
+            this.transform.position = Vector3.Lerp(this.transform.position, this.transform.position + nextPos * m_currentMovementSpeed, 0.05f);
+            transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(nextPos), Time.deltaTime * 10);
         }
+    }
+
+    public void RemoteMove(float xInput, float yInput)
+    {
+        RpcMove(xInput, yInput);
+    }
+
+    [ClientRpc]
+    public void RpcMove(float xInput, float yInput)
+    {
+        Move(xInput, yInput);
     }
 
     public void UseSkill()
@@ -187,8 +231,13 @@ public class Player : NetworkBehaviour
 
     public void Freeze(bool action)
     {
-        OnFreeze(action);
         RpcFreeze(action);
+    }
+
+    [ClientRpc]
+    public void RpcFreeze(bool action)
+    {
+        OnFreeze(action);
     }
 
     void OnFreeze(bool action)
@@ -201,22 +250,24 @@ public class Player : NetworkBehaviour
         m_playerAnimator.speed = action ? 0 : 1;
     }
 
-    [ClientRpc]
-    public void RpcFreeze(bool action)
-    {
-        OnFreeze(action);
-    }
-
     [Command]
     void CmdUseSkill()
     {
-        SkillsManager.Instance.UseSkill(this.gameObject, PlayerHeroData.m_skillID);
+        if (!m_skillOnCD)
+        {
+            SkillsManager.Instance.UseSkill(this.gameObject, PlayerHeroData.m_skillID);
+            StartCoroutine(RunSkillTimer());
+        }
     }
 
     [ClientRpc]
     void RpcUseSkill()
     {
-        SkillsManager.Instance.UseSkill(this.gameObject, PlayerHeroData.m_skillID);
+        if (!m_skillOnCD)
+        {
+            SkillsManager.Instance.UseSkill(this.gameObject, PlayerHeroData.m_skillID);
+            StartCoroutine(RunSkillTimer());
+        }
     }
 
     [Server]
@@ -228,9 +279,55 @@ public class Player : NetworkBehaviour
     [ClientRpc]
     void RpcOnEnterWater()
     {
-        m_isDead = true;
         Instantiate(m_splashPrefab, this.transform.position + this.transform.forward, Quaternion.identity);
-        Debug.Log("Dead");
+        if (PlayerHeroData.m_heroType == HeroType.Chaser)
+        {
+            if (isLocalPlayer)
+            {
+                IsDead = true;
+                StartCoroutine(SpawnChaserWithDelayCR());
+            }
+        }
+        else if (PlayerHeroData.m_heroType == HeroType.Runner)
+        {
+            if (isLocalPlayer)
+                PlayersSpawnManager.Instance.SpawnRunner(this.gameObject);
+        }
+    }
+
+    IEnumerator SpawnChaserWithDelayCR()
+    {
+        int tempTimer = 3;
+        InGameUIManager.Instance.ShowDeathScreen(true);
+        while (tempTimer > 0)
+        {
+            InGameUIManager.Instance.UpdateDeathScreenText(tempTimer);
+            tempTimer --;
+            yield return new WaitForSeconds(1);
+        }
+        IsDead = false;
+        InGameUIManager.Instance.ShowDeathScreen(false);
+        PlayersSpawnManager.Instance.SpawnChaser(this.gameObject);
+    }
+
+    IEnumerator RunSkillTimer()
+    {
+        m_skillOnCD = true;
+        float skilltime = SkillsManager.Instance.AllSkillsData[PlayerHeroData.m_skillID].m_CD;
+        float tempTimer = skilltime;
+        if (isLocalPlayer)
+            InGameUIManager.Instance.ShowSkillCD(true);
+
+        while (tempTimer > 0)
+        {
+            tempTimer -= Time.deltaTime;
+            if (isLocalPlayer)
+                InGameUIManager.Instance.UpdateSkillCD(tempTimer/skilltime);
+            yield return null;
+        }
+        if (isLocalPlayer)
+            InGameUIManager.Instance.ShowSkillCD(false);
+        m_skillOnCD = false;
     }
 
     [Server]
@@ -257,7 +354,8 @@ public class Player : NetworkBehaviour
                 {
                     if (this.PlayerHeroData.m_heroType == HeroType.Chaser && otherPlayer.PlayerHeroData.m_heroType == HeroType.Runner)
                     {
-                        otherPlayer.Freeze(true);
+                        if(!otherPlayer.IsImmune)
+                            otherPlayer.Freeze(true);
                     }
                     else if ((this.PlayerHeroData.m_heroType == HeroType.Runner && otherPlayer.PlayerHeroData.m_heroType == HeroType.Runner) && otherPlayer.IsFronze)
                     {
