@@ -33,7 +33,7 @@ public class Player : NetworkBehaviour
     public int testHeroID = 0;
 
     GameObject m_currentRunnerUISlotGO;
-
+    
     public bool MovementAllowed
     {
         get
@@ -99,6 +99,32 @@ public class Player : NetworkBehaviour
         }
     }
 
+    public GameObject PlayerMeshHolderGO
+    {
+        get
+        {
+            return m_playerMeshHolderGO;
+        }
+
+        set
+        {
+            m_playerMeshHolderGO = value;
+        }
+    }
+
+    public Animator PlayerAnimator
+    {
+        get
+        {
+            return m_playerAnimator;
+        }
+
+        set
+        {
+            m_playerAnimator = value;
+        }
+    }
+
     void Start()
     {
         if (testHeroID != 0)
@@ -143,11 +169,20 @@ public class Player : NetworkBehaviour
         PlayerHeroData = (testHeroID != 0) ? GameManager.Instance.AllHeroesData[testHeroID] : GameManager.Instance.FinalHeroSelectionList[CurrentPlayerSlot];
         SetMeshPlayer();
         MoveToSpawnPos();
-        if(PlayerHeroData.m_heroType == HeroType.Runner)
+        GameManager.Instance.ChangeLayers(this, LayerMask.NameToLayer(PlayerHeroData.m_heroType.ToString()));
+        if (PlayerHeroData.m_heroType == HeroType.Runner)
+        {
             m_currentRunnerUISlotGO = InGameUIManager.Instance.GetUIRunnerFronzenSlot(PlayerHeroData.m_name);
+            GameManager.Instance.AllRunnersList.Add(this);
+        }
+        else
+        {
+            GameManager.Instance.AllChasersList.Add(this);
+        }
 
         if (testHeroID == 0)
             GameManager.Instance.SetPlayerReady();
+
 
         if (!this.isLocalPlayer && (testHeroID == 0))
             return;
@@ -175,12 +210,12 @@ public class Player : NetworkBehaviour
 
         if(meshPrefab)
         {
-            if(m_playerMeshHolderGO.transform.childCount > 0)
+            if(PlayerMeshHolderGO.transform.childCount > 0)
             {
-                Destroy(m_playerMeshHolderGO.transform.GetChild(0));
+                Destroy(PlayerMeshHolderGO.transform.GetChild(0));
             }
 
-            GameObject currentMeshGo = Instantiate(meshPrefab, m_playerMeshHolderGO.transform);
+            GameObject currentMeshGo = Instantiate(meshPrefab, PlayerMeshHolderGO.transform);
             currentMeshGo.transform.localPosition = Vector3.zero + meshPrefab.transform.position;
             m_playerAnimator = currentMeshGo.GetComponent<Animator>();
         }
@@ -261,7 +296,7 @@ public class Player : NetworkBehaviour
         MovementAllowed = !action;
         IsFronze = action;
         this.GetComponent<Rigidbody>().isKinematic = action;
-        m_playerMeshHolderGO.transform.GetChild(0).GetComponent<PlayerMesh>().Freeze(action);
+        PlayerMeshHolderGO.transform.GetChild(0).GetComponent<PlayerMesh>().Freeze(action);
         m_playerAnimator.speed = action ? 0 : 1;
         if (isServer)
             GameManager.Instance.OnRunnerFrozen(action);
@@ -345,6 +380,28 @@ public class Player : NetworkBehaviour
         if (isLocalPlayer)
             InGameUIManager.Instance.ShowSkillCD(false);
         m_skillOnCD = false;
+    }
+    public void GoBlind()
+    {
+        RpcGoBlind();
+    }
+
+    [ClientRpc]
+    void RpcGoBlind()
+    {
+        if (isLocalPlayer)
+            StartCoroutine(GoBlindCR());
+    }
+
+    IEnumerator GoBlindCR()
+    {
+        LayerMask oldMask = Camera.main.cullingMask;
+        int mask = PlayerHeroData.m_heroType == HeroType.Chaser ? 1024 : 2048;
+
+        Camera.main.cullingMask = mask;
+
+        yield return new WaitForSeconds(SkillsManager.Instance.AllSkillsData[PlayerHeroData.m_skillID].m_duration);
+        Camera.main.cullingMask = oldMask;
     }
 
     [Server]

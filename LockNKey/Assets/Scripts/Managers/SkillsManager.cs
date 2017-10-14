@@ -40,6 +40,7 @@ public class SkillsManager : MonoBehaviour
 
     public void UseSkill(GameObject sourcePlayerGO, int skillId)
     {
+        sourcePlayerGO.GetComponent<Player>().PlayerAnimator.SetTrigger("Skill");
         switch (skillId)
         {
             case 0:
@@ -49,6 +50,7 @@ public class SkillsManager : MonoBehaviour
                 StartCoroutine(ActivateShieldDash(sourcePlayerGO,1));
                 break;
             case 2:
+                UseBlockBuster();
                 break;
             case 3:
                 UseSuicideBomber(sourcePlayerGO);
@@ -57,8 +59,10 @@ public class SkillsManager : MonoBehaviour
                 StartCoroutine(UseFear(sourcePlayerGO));
                 break;
             case 5:
+                StartCoroutine(ActivateAlmightyPush(sourcePlayerGO, 1)); 
                 break;
             case 6:
+                UseBlind(sourcePlayerGO);
                 break;
             case 7:
                 break;
@@ -80,8 +84,12 @@ public class SkillsManager : MonoBehaviour
         Skill thisSkill = GetSkillOfType(SkillType.ShieldDash);
         sourcePlayerGO.GetComponent<Player>().IsImmune = true;
         sourcePlayerGO.GetComponent<Player>().MovementAllowed = false;
-        GameObject tempCopy = Instantiate(thisSkill.m_skillPrefab, sourcePlayerGO.transform.position + thisSkill.m_positionToSpawnAt, sourcePlayerGO.transform.rotation);
+        sourcePlayerGO.GetComponent<Collider>().enabled = false;
+        sourcePlayerGO.GetComponent<Rigidbody>().isKinematic = true;
+
+        GameObject tempCopy = Instantiate(thisSkill.m_skillPrefab, Vector3.zero, sourcePlayerGO.transform.rotation);
         tempCopy.transform.SetParent(sourcePlayerGO.transform);
+        tempCopy.transform.localPosition = thisSkill.m_positionToSpawnAt;
         if (sourcePlayerGO.GetComponent<Player>().isLocalPlayer)
             LobbyManager.Instance.NetworkManager.SpawnGO(tempCopy);
 
@@ -96,6 +104,8 @@ public class SkillsManager : MonoBehaviour
         Destroy(tempCopy.gameObject);
         sourcePlayerGO.GetComponent<Player>().MovementAllowed = true;
         sourcePlayerGO.GetComponent<Player>().IsImmune = false;
+        sourcePlayerGO.GetComponent<Collider>().enabled = true;
+        sourcePlayerGO.GetComponent<Rigidbody>().isKinematic = false;
     }
 
     void UseSuicideBomber(GameObject sourcePlayer)
@@ -169,6 +179,50 @@ public class SkillsManager : MonoBehaviour
         }
     }
 
+    void UseBlind(GameObject sourcePlayer)
+    {
+        Player thisPlayer = sourcePlayer.GetComponent<Player>();
+        if (!thisPlayer.isLocalPlayer)
+            return;
+
+        List<Player> opponentPlayerList = thisPlayer.PlayerHeroData.m_heroType == HeroType.Chaser ? GameManager.Instance.AllRunnersList : GameManager.Instance.AllChasersList;
+
+        for (int i = 0; i < opponentPlayerList.Count; i++)
+        {
+            opponentPlayerList[i].GoBlind();
+        }
+    }
+
+    void UseBlockBuster()
+    {
+        Debug.Log("UseBlockBuster");
+    }
+
+    IEnumerator ActivateAlmightyPush(GameObject sourcePlayerGO, int skillID)
+    {
+        Skill thisSkill = GetSkillOfType(SkillType.AlmightyPush);
+        sourcePlayerGO.GetComponent<Player>().IsImmune = true;
+        sourcePlayerGO.GetComponent<Player>().MovementAllowed = false;
+
+        GameObject tempCopy = Instantiate(thisSkill.m_skillPrefab,Vector3.zero, sourcePlayerGO.transform.rotation);
+        tempCopy.transform.SetParent(sourcePlayerGO.transform);
+        tempCopy.transform.localPosition = thisSkill.m_positionToSpawnAt;
+        if (sourcePlayerGO.GetComponent<Player>().isLocalPlayer)
+            LobbyManager.Instance.NetworkManager.SpawnGO(tempCopy);
+
+        float timer = AllSkillsData[skillID].m_duration;
+        while (timer > 0)
+        {
+            timer -= Time.deltaTime;
+            sourcePlayerGO.transform.position += sourcePlayerGO.transform.forward * Time.deltaTime * 30;
+            yield return null;
+        }
+
+        Destroy(tempCopy.gameObject);
+        sourcePlayerGO.GetComponent<Player>().MovementAllowed = true;
+        sourcePlayerGO.GetComponent<Player>().IsImmune = false;
+    }
+
     Skill GetSkillOfType(SkillType type)
     {
         Skill tempSkill = null;
@@ -193,4 +247,4 @@ public class Skill
     public Vector3 m_positionToSpawnAt;
 }
 
-public enum SkillType { AfterImage, ShieldDash}
+public enum SkillType { AfterImage, ShieldDash, AlmightyPush}

@@ -20,6 +20,9 @@ public class GameManager : NetworkBehaviour
 
     private List<HeroData> m_finalHeroSelectionList = new List<HeroData>();
 
+    private List<Player> m_allChasersList = new List<Player>();
+    private List<Player> m_allRunnersList = new List<Player>();
+
     private HeroData[] m_allHeroesData;
 
     private int currentPlayerSlot;
@@ -168,6 +171,32 @@ public class GameManager : NetworkBehaviour
         }
     }
 
+    public List<Player> AllChasersList
+    {
+        get
+        {
+            return m_allChasersList;
+        }
+
+        set
+        {
+            m_allChasersList = value;
+        }
+    }
+
+    public List<Player> AllRunnersList
+    {
+        get
+        {
+            return m_allRunnersList;
+        }
+
+        set
+        {
+            m_allRunnersList = value;
+        }
+    }
+
     void Awake()
     {
         if (GameManager.Instance == null)
@@ -203,6 +232,14 @@ public class GameManager : NetworkBehaviour
         }else
         {
             m_islandsList.Clear();
+        }
+    }
+
+    public void ChangeLayers(Player player, LayerMask mask)
+    {
+        foreach (GameObject child in player.PlayerMeshHolderGO.transform.GetChild(0).GetComponent<PlayerMesh>().m_meshArray)
+        {
+            child.layer = mask; 
         }
     }
 
@@ -362,7 +399,6 @@ public class GameManager : NetworkBehaviour
     [ClientRpc]
     void RpcRemoveIsland()
     {
-        Debug.Log(m_islandsList.Count);
         if (m_islandsList.Count > 0)
         {
             m_islandsList[m_islandsList.Count - 1].GetComponent<IslandBehaviour>().RemoveIsland();

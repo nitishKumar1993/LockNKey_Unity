@@ -3592,7 +3592,7 @@ MonoBehaviour:
       m_Calls: []
     m_TypeName: UnityEngine.UI.MaskableGraphic+CullStateChangedEvent, UnityEngine.UI,
       Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
-  m_Sprite: {fileID: 21300000, guid: 22802cebf78d3434b9d715f82bbe80c7, type: 3}
+  m_Sprite: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
   m_Type: 3
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -5415,7 +5415,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 598047428}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -42.51, y: 0.82, z: 27.3}
+  m_LocalPosition: {x: -42.51, y: -0.19, z: 27.3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 1514026825}
@@ -8759,7 +8759,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 956070801}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -40.29, y: 0.82, z: 27.3}
+  m_LocalPosition: {x: -40.88, y: -0.19, z: 25.89}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 87335038}
@@ -10332,7 +10332,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1101719791}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -44.49, y: 0.82, z: 27.3}
+  m_LocalPosition: {x: -42.84, y: -0.19, z: 24.94}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 741832493}
@@ -13747,7 +13747,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.5661765, g: 0.89229214, b: 1, a: 0}
+  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
   m_NormalizedViewPortRect:
     serializedVersion: 2
     x: 0
@@ -13946,7 +13946,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1459997951}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -24.21, y: 0.82, z: 27.54}
+  m_LocalPosition: {x: -24.21, y: -0.19, z: 26.33}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 171770798}
@@ -14201,7 +14201,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.08400001, y: 0.84651047}
   m_AnchorMax: {x: 0.90500003, y: 1}
-  m_AnchoredPosition: {x: -2.594017, y: 2.4732513}
+  m_AnchoredPosition: {x: -2.594017, y: 2.4732666}
   m_SizeDelta: {x: -1.6000061, y: -2.8464966}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1001 &1466254122
@@ -21535,7 +21535,11 @@ MonoBehaviour:
   - m_skillType: 1
     m_skillPrefab: {fileID: 1430639321280424, guid: c3694bb976e1e4446ab69e9a0f97c9ee,
       type: 2}
-    m_positionToSpawnAt: {x: 0.17, y: 0.86, z: 0.28}
+    m_positionToSpawnAt: {x: 0, y: 0.17, z: 0}
+  - m_skillType: 2
+    m_skillPrefab: {fileID: 1430639321280424, guid: 968aeaa9ae61a4d49bacb7e99f435fb9,
+      type: 2}
+    m_positionToSpawnAt: {x: 0, y: 0, z: 1.85}
 --- !u!1001 &2122993783
 Prefab:
   m_ObjectHideFlags: 0

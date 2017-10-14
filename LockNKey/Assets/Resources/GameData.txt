@@ -1,9 +1,9 @@
 HeroType(0=Chaser 1=Runner),Name,SkillId,MovementSpeed
 0,BucklerAgent,0,2
 0,Clownking,1,2
-0,Stomper,1,2
+0,Stomper,2,2
 1,Ablaze,3,1.7
 1,Banshee,4,1.8
-1,Lancer,3,1.7
-1,MightyPoke,4,1.5
+1,Lancer,5,1.7
+1,MightyPoke,6,1.5
 1,Wrecker,3,1.6

@@ -3064,7 +3064,7 @@ MonoBehaviour:
   m_meshArray:
   - {fileID: 1918834037653740}
   - {fileID: 1723883499927588}
-  - {fileID: 1477874346840826}
+  - {fileID: 1457140580107714}
   - {fileID: 1948881315867156}
   - {fileID: 1237453993807970}
   - {fileID: 1356168188422472}
@@ -3095,7 +3095,6 @@ MonoBehaviour:
   - {fileID: 1659873277196326}
   - {fileID: 1314564629474130}
   - {fileID: 1917442245230284}
-  - {fileID: 1457140580107714}
   m_meshMaterialsList: []
 --- !u!137 &137050132022094886
 SkinnedMeshRenderer:

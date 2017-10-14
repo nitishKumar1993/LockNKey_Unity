@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
+  m_IndirectSpecularColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!157 &3
 LightmapSettings:
   m_ObjectHideFlags: 0
@@ -817,6 +817,7 @@ MonoBehaviour:
   m_SpawnPrefabs:
   - {fileID: 1885317356090738, guid: 01154f87574c989409f54deec7da5e53, type: 2}
   - {fileID: 1430639321280424, guid: c3694bb976e1e4446ab69e9a0f97c9ee, type: 2}
+  - {fileID: 1430639321280424, guid: 968aeaa9ae61a4d49bacb7e99f435fb9, type: 2}
   m_CustomConfig: 0
   m_MaxConnections: 4
   m_ConnectionConfig:
@@ -1345,6 +1346,16 @@ Prefab:
         type: 2}
       propertyPath: testHeroID
       value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 114737862827369578, guid: 942e4b2c3f481cd4c99e65316bd085ab,
+        type: 2}
+      propertyPath: m_chaserLayer.m_Bits
+      value: 1024
+      objectReference: {fileID: 0}
+    - target: {fileID: 114737862827369578, guid: 942e4b2c3f481cd4c99e65316bd085ab,
+        type: 2}
+      propertyPath: m_runnerLayer.m_Bits
+      value: 2048
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 942e4b2c3f481cd4c99e65316bd085ab, type: 2}
