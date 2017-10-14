@@ -406,6 +406,7 @@ public class LobbyManager : MonoBehaviour
 
     void UpdateHeroSelectionScreen(int heroType)
     {
+        SkillData[] allSkillData =  ResourceManager.GetSkillsData();
         int tempNo = 0;
         for (int i = 0; i < GameManager.Instance.AllHeroesData.Length; i++)
         {
@@ -414,6 +415,7 @@ public class LobbyManager : MonoBehaviour
                 HeroData currentHeroData = GameManager.Instance.AllHeroesData[i];
                 m_heroSelectionContentGO.transform.GetChild(tempNo).GetComponent<HeroSelectionObj>().Init(currentHeroData);
                 m_heroSelectionContentGO.transform.GetChild(tempNo).Find("NameText").GetComponent<Text>().text = currentHeroData.m_name;
+                m_heroSelectionContentGO.transform.GetChild(tempNo).Find("SkillText").GetComponent<Text>().text = allSkillData[currentHeroData.m_skillID].m_name;
                 tempNo++;
             }
         }

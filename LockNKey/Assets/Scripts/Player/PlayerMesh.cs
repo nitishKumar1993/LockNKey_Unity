@@ -21,7 +21,9 @@ public class PlayerMesh : MonoBehaviour
                 m_meshMaterialsList.Add(new Material(m_meshArray[i].GetComponent<SkinnedMeshRenderer>().materials[0]));
             }
             else
+            {
                 Debug.Log("Couldnt find material for mesh :" + m_meshArray[i].name + " On " + this.name);
+            }
         }
     }
 

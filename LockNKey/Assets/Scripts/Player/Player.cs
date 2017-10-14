@@ -30,6 +30,10 @@ public class Player : NetworkBehaviour
 
     public int CurrentPlayerSlot = -1;
 
+    public int testHeroID = 0;
+
+    GameObject m_currentRunnerUISlotGO;
+
     public bool MovementAllowed
     {
         get
@@ -97,7 +101,7 @@ public class Player : NetworkBehaviour
 
     void Start()
     {
-        if (GameManager.Instance.isTesting)
+        if (testHeroID != 0)
         {
             Initialize();
         }
@@ -113,7 +117,7 @@ public class Player : NetworkBehaviour
             CurrentPlayerSlot = GameManager.Instance.CurrentPlayerSlot;
             CmdSetCurrentSlot(CurrentPlayerSlot);
         }
-        else if (GameManager.Instance.isTesting)
+        else if (testHeroID != 0)
         {
             Init();
         }
@@ -137,12 +141,16 @@ public class Player : NetworkBehaviour
 
     void Init()
     {
-        PlayerHeroData = GameManager.Instance.isTesting ? GameManager.Instance.AllHeroesData[GameManager.Instance.testHeroID] : GameManager.Instance.FinalHeroSelectionList[CurrentPlayerSlot];
-        GameManager.Instance.SetPlayerReady();
+        PlayerHeroData = (testHeroID != 0) ? GameManager.Instance.AllHeroesData[testHeroID] : GameManager.Instance.FinalHeroSelectionList[CurrentPlayerSlot];
         SetMeshPlayer();
         MoveToSpawnPos();
+        if(PlayerHeroData.m_heroType == HeroType.Runner)
+            m_currentRunnerUISlotGO = InGameUIManager.Instance.GetUIRunnerFronzenSlot(PlayerHeroData.m_name);
 
-        if (!this.isLocalPlayer && !GameManager.Instance.isTesting)
+        if (testHeroID == 0)
+            GameManager.Instance.SetPlayerReady();
+
+        if (!this.isLocalPlayer && (testHeroID == 0))
             return;
 
         Camera.main.gameObject.GetComponent<CameraController>().PlayerGO = this.gameObject;
@@ -185,13 +193,17 @@ public class Player : NetworkBehaviour
 
     void FixedUpdate()
     {
-        if ((this.isLocalPlayer || GameManager.Instance.isTesting) && !IsDead && isTouchingGround && MovementAllowed)
+        if ((this.isLocalPlayer) && !IsDead && isTouchingGround && MovementAllowed)
             Move(CnInputManager.GetAxis("Horizontal"), CnInputManager.GetAxis("Vertical"));
 
         if (m_playerAnimator != null)
         {
-            if (!IsDead)
-                m_playerAnimator.SetFloat("WalkSpeed", Vector3.Distance(this.transform.position, m_currentPlayerPosition) * 5);
+            if (!IsDead && !IsFronze)
+            {
+                float temp = (Vector3.Distance(this.transform.position, m_currentPlayerPosition) * 10) / PlayerHeroData.m_movementSpeed;
+               // m_playerAnimator.speed = 1 + temp/2;
+                m_playerAnimator.SetFloat("WalkSpeed", temp);
+            }
         }
 
         m_currentPlayerPosition = this.transform.position;
@@ -229,24 +241,26 @@ public class Player : NetworkBehaviour
         }
     }
 
-    public void Freeze(bool action)
+    public void Freeze(bool action, string ChaserName)
     {
-        RpcFreeze(action);
+        if(GameManager.Instance.GameStarted)
+            RpcFreeze(action, ChaserName);
     }
 
     [ClientRpc]
-    public void RpcFreeze(bool action)
+    public void RpcFreeze(bool action, string ChaserName)
     {
-        OnFreeze(action);
+        OnFreeze(action, ChaserName);
     }
 
-    void OnFreeze(bool action)
+    void OnFreeze(bool action, string ChaserName)
     {
-        Debug.Log("OnFreeze :" + action + " for Hero: " + PlayerHeroData.m_name);
+        Debug.Log("OnFreeze :" + action + " for Hero: " + PlayerHeroData.m_name + " ,from : " + ChaserName);
+        InGameUIManager.Instance.ShowRunnerFrozenStatus(m_currentRunnerUISlotGO, action);
         MovementAllowed = !action;
         IsFronze = action;
         this.GetComponent<Rigidbody>().isKinematic = action;
-        m_playerMeshHolderGO.transform.GetChild(0).GetComponent<PlayerMesh>().Freeze(true);
+        m_playerMeshHolderGO.transform.GetChild(0).GetComponent<PlayerMesh>().Freeze(action);
         m_playerAnimator.speed = action ? 0 : 1;
     }
 
@@ -333,11 +347,14 @@ public class Player : NetworkBehaviour
     [Server]
     private void OnCollisionStay(Collision collision)
     {
-        for (int i = 0; i < collision.contacts.Length; i++)
+        if (GameManager.Instance.GameStarted)
         {
-            if (this.transform.position.y - collision.contacts[i].point.y < -0.5f && collision.contacts[i].thisCollider.gameObject.tag == "Island")
+            for (int i = 0; i < collision.contacts.Length; i++)
             {
-                RpcOnGroundTouchingStopped();
+                if (this.transform.position.y - collision.contacts[i].point.y < -0.5f && collision.contacts[i].thisCollider.gameObject.tag == "Island")
+                {
+                    RpcOnGroundTouchingStopped();
+                }
             }
         }
     }
@@ -345,26 +362,29 @@ public class Player : NetworkBehaviour
     [Server]
     private void OnCollisionEnter(Collision collision)
     {
-        for (int i = 0; i < collision.contacts.Length; i++)
+        if (GameManager.Instance.GameStarted)
         {
-            if (collision.gameObject.tag == "Player")
+            for (int i = 0; i < collision.contacts.Length; i++)
             {
-                Player otherPlayer = collision.gameObject.GetComponent<Player>();
-                if (otherPlayer)
+                if (collision.gameObject.tag == "Player")
                 {
-                    if (this.PlayerHeroData.m_heroType == HeroType.Chaser && otherPlayer.PlayerHeroData.m_heroType == HeroType.Runner)
+                    Player otherPlayer = collision.gameObject.GetComponent<Player>();
+                    if (otherPlayer)
                     {
-                        if(!otherPlayer.IsImmune)
-                            otherPlayer.Freeze(true);
+                        if (this.PlayerHeroData.m_heroType == HeroType.Chaser && otherPlayer.PlayerHeroData.m_heroType == HeroType.Runner)
+                        {
+                            if (!otherPlayer.IsImmune)
+                                otherPlayer.Freeze(true, this.gameObject.name);
+                        }
+                        else if ((this.PlayerHeroData.m_heroType == HeroType.Runner && otherPlayer.PlayerHeroData.m_heroType == HeroType.Runner) && otherPlayer.IsFronze)
+                        {
+                            otherPlayer.Freeze(false, this.gameObject.name);
+                        }
                     }
-                    else if ((this.PlayerHeroData.m_heroType == HeroType.Runner && otherPlayer.PlayerHeroData.m_heroType == HeroType.Runner) && otherPlayer.IsFronze)
+                    else
                     {
-                        otherPlayer.Freeze(false);
+                        Debug.Log("Player component not found on the player GO");
                     }
-                }
-                else
-                {
-                    Debug.Log("Player component not found on the player GO");
                 }
             }
         }

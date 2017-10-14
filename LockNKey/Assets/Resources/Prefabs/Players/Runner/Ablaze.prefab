@@ -1420,8 +1420,16 @@ MonoBehaviour:
   - {fileID: 1163141718134112}
   - {fileID: 1102971622548750}
   - {fileID: 1286293788178216}
-  - {fileID: 1260343340751524}
+  - {fileID: 1388659388599944}
   - {fileID: 1758125967640520}
+  - {fileID: 1474095071586618}
+  - {fileID: 1639481649118158}
+  - {fileID: 1641525552761966}
+  - {fileID: 1486053111138406}
+  - {fileID: 1010062791854148}
+  - {fileID: 1513384922623384}
+  - {fileID: 1558854658821208}
+  m_meshMaterialsList: []
 --- !u!137 &137044338215154222
 SkinnedMeshRenderer:
   m_ObjectHideFlags: 1

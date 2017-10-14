@@ -32,8 +32,8 @@ public class GameManager : NetworkBehaviour
 
     private int m_totalPlayersReady = 0;
 
-    public bool isTesting = false;
-    public int testHeroID = 0;
+    [SyncVar]
+    private bool m_gameStarted = false;
 
     public SyncListInt FinalHeroTypeSelection
     {
@@ -139,6 +139,19 @@ public class GameManager : NetworkBehaviour
         }
     }
 
+    public bool GameStarted
+    {
+        get
+        {
+            return m_gameStarted;
+        }
+
+        set
+        {
+            m_gameStarted = value;
+        }
+    }
+
     void Awake()
     {
         if (GameManager.Instance == null)
@@ -157,12 +170,6 @@ public class GameManager : NetworkBehaviour
     void Start()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
-
-        //Test code
-        if (isTesting)
-        {
-            m_inGameCanvas = GameObject.FindGameObjectWithTag("InGameCanvas");
-        }
     }
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -272,6 +279,7 @@ public class GameManager : NetworkBehaviour
         if (m_totalPlayersReady >= NetworkServer.connections.Count)
         {
             StartGame();
+            m_gameStarted = true;
         }
     }
 
@@ -334,7 +342,11 @@ public class GameManager : NetworkBehaviour
     [ClientRpc]
     void RpcRemoveIsland()
     {
-        m_islandsList[m_islandsList.Count - 1].GetComponent<IslandBehaviour>().RemoveIsland();
-        m_islandsList.RemoveAt(m_islandsList.Count - 1);
+        Debug.Log(m_islandsList.Count);
+        if (m_islandsList.Count > 0)
+        {
+            m_islandsList[m_islandsList.Count - 1].GetComponent<IslandBehaviour>().RemoveIsland();
+            m_islandsList.RemoveAt(m_islandsList.Count - 1);
+        }
     }
 }
