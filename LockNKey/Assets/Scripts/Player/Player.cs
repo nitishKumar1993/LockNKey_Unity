@@ -111,7 +111,6 @@ public class Player : NetworkBehaviour
 
     void Initialize()
     {
-        Debug.Log(this.isLocalPlayer);
         if (isLocalPlayer)
         {
             CurrentPlayerSlot = GameManager.Instance.CurrentPlayerSlot;
@@ -193,6 +192,9 @@ public class Player : NetworkBehaviour
 
     void FixedUpdate()
     {
+        if (GameManager.Instance.IsGameOver)
+            return;
+
         if ((this.isLocalPlayer) && !IsDead && isTouchingGround && MovementAllowed)
             Move(CnInputManager.GetAxis("Horizontal"), CnInputManager.GetAxis("Vertical"));
 
@@ -201,7 +203,6 @@ public class Player : NetworkBehaviour
             if (!IsDead && !IsFronze)
             {
                 float temp = (Vector3.Distance(this.transform.position, m_currentPlayerPosition) * 10) / PlayerHeroData.m_movementSpeed;
-               // m_playerAnimator.speed = 1 + temp/2;
                 m_playerAnimator.SetFloat("WalkSpeed", temp);
             }
         }
@@ -262,6 +263,8 @@ public class Player : NetworkBehaviour
         this.GetComponent<Rigidbody>().isKinematic = action;
         m_playerMeshHolderGO.transform.GetChild(0).GetComponent<PlayerMesh>().Freeze(action);
         m_playerAnimator.speed = action ? 0 : 1;
+        if (isServer)
+            GameManager.Instance.OnRunnerFrozen(action);
     }
 
     [Command]

@@ -9,6 +9,11 @@ public class InGameUIManager : MonoBehaviour
     public static InGameUIManager Instance;
 
     [SerializeField]
+    private GameObject m_gameArea;
+    [SerializeField]
+    private GameObject m_gameOverArea;
+
+    [SerializeField]
     private Text m_timerText;
 
     [SerializeField]
@@ -23,9 +28,22 @@ public class InGameUIManager : MonoBehaviour
     [SerializeField]
     private List<GameObject> m_runnersFrozenSlotsList;
 
+    [SerializeField]
+    private Text m_fpsText;
+    float deltaTime;
+
+    private string m_chaserWonGameOverMsg = "Chasers Won";
+    private string m_runnersWonGameOverMsg = "Runners Won";
+
     private void Start()
     {
         Instance = this;
+    }
+
+    private void Update()
+    {
+        deltaTime += (Time.deltaTime - deltaTime) * 0.1f;
+        m_fpsText.text = Mathf.Round((1.0f / deltaTime)).ToString();
     }
 
     public void OnQuitBtnCicked()
@@ -78,6 +96,20 @@ public class InGameUIManager : MonoBehaviour
     public void ShowRunnerFrozenStatus(GameObject playerSlotGO,bool freeze)
     {
         playerSlotGO.transform.Find("Image").GetComponent<Image>().color = freeze ? (GameManager.Instance.CurrentPlayer.PlayerHeroData.m_heroType == HeroType.Chaser ? Color.green : Color.red): Color.white;
+    }
+
+    public void ShowGameOver(bool chaserWon)
+    {
+        m_gameArea.SetActive(false);
+        m_gameOverArea.SetActive(true);
+
+        GameObject winScreenBG = m_gameOverArea.transform.Find("WinScreenBG").gameObject;
+        GameObject looseScreenBG = m_gameOverArea.transform.Find("LooseScreenBG").gameObject;
+        Text GameOverText = m_gameOverArea.transform.Find("Text").GetComponent<Text>();
+        GameOverText.text = chaserWon ?  m_chaserWonGameOverMsg : m_runnersWonGameOverMsg;
+
+        winScreenBG.SetActive((chaserWon && GameManager.Instance.CurrentPlayer.PlayerHeroData.m_heroType == HeroType.Chaser) || (!chaserWon && GameManager.Instance.CurrentPlayer.PlayerHeroData.m_heroType == HeroType.Runner));
+        looseScreenBG.SetActive(!winScreenBG.activeSelf);
     }
 
     string FormateAmountToDisplay(int amount)

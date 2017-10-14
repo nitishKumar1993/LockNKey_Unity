@@ -31,9 +31,12 @@ public class GameManager : NetworkBehaviour
     private GameObject m_inGameCanvas;
 
     private int m_totalPlayersReady = 0;
+    private int m_totalFrozenRunners = 0;
 
     [SyncVar]
     private bool m_gameStarted = false;
+
+    private bool m_gameOver = false;
 
     public SyncListInt FinalHeroTypeSelection
     {
@@ -152,6 +155,19 @@ public class GameManager : NetworkBehaviour
         }
     }
 
+    public bool IsGameOver
+    {
+        get
+        {
+            return m_gameOver;
+        }
+
+        set
+        {
+            m_gameOver = value;
+        }
+    }
+
     void Awake()
     {
         if (GameManager.Instance == null)
@@ -184,6 +200,9 @@ public class GameManager : NetworkBehaviour
             }
             if (m_islandsList.Count == 0)
                 Debug.Log("Couldnt find any island in the scene.");
+        }else
+        {
+            m_islandsList.Clear();
         }
     }
 
@@ -267,7 +286,7 @@ public class GameManager : NetworkBehaviour
 
     public void SetSkillButtonHandler(UnityEngine.Events.UnityAction action)
     {
-        Button skillBtn = m_inGameCanvas.transform.Find("SkillBtn").GetComponent<Button>();
+        Button skillBtn = m_inGameCanvas.transform.Find("GameArea/SkillBtn").GetComponent<Button>();
         skillBtn.onClick.AddListener(action);
     }
 
@@ -292,7 +311,7 @@ public class GameManager : NetworkBehaviour
     void StartTimer()
     {
         Debug.Log("StartTimer :" + m_gameDurationInMins);
-        StartCoroutine(TimerCR());
+        StartCoroutine("TimerCR");
     }
 
     IEnumerator TimerCR()
@@ -305,6 +324,7 @@ public class GameManager : NetworkBehaviour
             RpcUpdateClientTimerUI(tempTimer);
             yield return new WaitForSeconds(1);
         }
+        GameOver(false);
     }
 
     [ClientRpc]
@@ -348,5 +368,33 @@ public class GameManager : NetworkBehaviour
             m_islandsList[m_islandsList.Count - 1].GetComponent<IslandBehaviour>().RemoveIsland();
             m_islandsList.RemoveAt(m_islandsList.Count - 1);
         }
+    }
+
+    public void OnRunnerFrozen(bool frozen)
+    {
+        m_totalFrozenRunners += (frozen ? 1 : -1);
+        CheckAllRunnersFrozen();
+    }
+
+    void CheckAllRunnersFrozen()
+    {
+        if(m_totalFrozenRunners >= m_totalPlayersReady - 1)
+        {
+            StopCoroutine("TimerCR");
+            RpcGameOver(true);
+        }
+    }
+
+    [ClientRpc]
+    void RpcGameOver(bool ChaserWon)
+    {
+        Debug.Log("RpcGameOver : Chaser Won :" + ChaserWon);
+        GameOver(ChaserWon);
+    }
+
+    void GameOver(bool ChaserWon)
+    {
+        m_gameOver = true;
+        InGameUIManager.Instance.ShowGameOver(ChaserWon);
     }
 }
