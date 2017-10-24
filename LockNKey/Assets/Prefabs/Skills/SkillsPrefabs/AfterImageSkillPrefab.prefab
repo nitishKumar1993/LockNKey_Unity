@@ -34,7 +34,6 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4067692870070896}
-  - component: {fileID: 136238329645002118}
   - component: {fileID: 114318007613116146}
   - component: {fileID: 114407206747893734}
   - component: {fileID: 114823519317556502}
@@ -136,16 +135,3 @@ MonoBehaviour:
   m_SnapThreshold: 5
   m_InterpolateRotation: 1
   m_InterpolateMovement: 1
---- !u!136 &136238329645002118
-CapsuleCollider:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1885317356090738}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  m_Radius: 0.5
-  m_Height: 3.48
-  m_Direction: 1
-  m_Center: {x: 0, y: 1.73, z: -0.27}

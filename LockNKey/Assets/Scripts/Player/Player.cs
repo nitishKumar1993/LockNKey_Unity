@@ -125,6 +125,19 @@ public class Player : NetworkBehaviour
         }
     }
 
+    public float CurrentMovementSpeed
+    {
+        get
+        {
+            return m_currentMovementSpeed;
+        }
+
+        set
+        {
+            m_currentMovementSpeed = value;
+        }
+    }
+
     void Start()
     {
         if (testHeroID != 0)
@@ -169,6 +182,7 @@ public class Player : NetworkBehaviour
         PlayerHeroData = (testHeroID != 0) ? GameManager.Instance.AllHeroesData[testHeroID] : GameManager.Instance.FinalHeroSelectionList[CurrentPlayerSlot];
         SetMeshPlayer();
         MoveToSpawnPos();
+        this.GetComponent<Rigidbody>().isKinematic = false;
         GameManager.Instance.ChangeLayers(this, LayerMask.NameToLayer(PlayerHeroData.m_heroType.ToString()));
         if (PlayerHeroData.m_heroType == HeroType.Runner)
         {
@@ -291,7 +305,7 @@ public class Player : NetworkBehaviour
 
     void OnFreeze(bool action, string ChaserName)
     {
-        Debug.Log("OnFreeze :" + action + " for Hero: " + PlayerHeroData.m_name + " ,from : " + ChaserName);
+        Debug.Log(PlayerHeroData.m_name + " : OnFreeze :" + action + " for Hero: " + PlayerHeroData.m_name + " ,from : " + ChaserName);
         InGameUIManager.Instance.ShowRunnerFrozenStatus(m_currentRunnerUISlotGO, action);
         MovementAllowed = !action;
         IsFronze = action;
@@ -383,12 +397,24 @@ public class Player : NetworkBehaviour
     }
     public void GoBlind()
     {
+        Debug.Log("Go Blind");
+        if (isServer && isLocalPlayer)
+            RpcGoBlind();
+        else
+            CmdGoBlind();
+    }
+
+    [Command]
+    void CmdGoBlind()
+    {
+        Debug.Log("CmdGoBlind");
         RpcGoBlind();
     }
 
     [ClientRpc]
     void RpcGoBlind()
     {
+        Debug.Log("RpcGoBlind");
         if (isLocalPlayer)
             StartCoroutine(GoBlindCR());
     }
@@ -433,8 +459,11 @@ public class Player : NetworkBehaviour
                     {
                         if (this.PlayerHeroData.m_heroType == HeroType.Chaser && otherPlayer.PlayerHeroData.m_heroType == HeroType.Runner)
                         {
-                            if (!otherPlayer.IsImmune)
+                            if (!otherPlayer.IsImmune && !otherPlayer.IsFronze && !collisionTimerRunning)
+                            {
                                 otherPlayer.Freeze(true, this.gameObject.name);
+                                StartCoroutine(runCollsionTimer());
+                            }
                         }
                         else if ((this.PlayerHeroData.m_heroType == HeroType.Runner && otherPlayer.PlayerHeroData.m_heroType == HeroType.Runner) && otherPlayer.IsFronze)
                         {
@@ -448,6 +477,20 @@ public class Player : NetworkBehaviour
                 }
             }
         }
+    }
+
+    bool collisionTimerRunning = false;
+    IEnumerator runCollsionTimer()
+    {
+        float timer = 0.2f;
+        collisionTimerRunning = true;
+        while (timer > 0)
+        {
+            timer -= Time.deltaTime;
+            yield return null;
+        }
+        collisionTimerRunning = false;
+           
     }
 
     [ClientRpc]

@@ -229,7 +229,11 @@ public class GameManager : NetworkBehaviour
             }
             if (m_islandsList.Count == 0)
                 Debug.Log("Couldnt find any island in the scene.");
-        }else
+
+            m_gameOver = false;
+            m_gameStarted = false;
+        }
+        else
         {
             m_islandsList.Clear();
         }

@@ -18,7 +18,7 @@ public class AfterImageLogic : MonoBehaviour {
         while (duration > 0)
         {
             duration -= Time.deltaTime;
-            this.transform.position += (this.transform.forward * 0.1f);
+            this.transform.position += (this.transform.forward) * Time.deltaTime * 5;
             yield return null;
         }
         Destroy(this.gameObject);

@@ -50,7 +50,7 @@ public class SkillsManager : MonoBehaviour
                 StartCoroutine(ActivateShieldDash(sourcePlayerGO,1));
                 break;
             case 2:
-                UseBlockBuster();
+                UseBlockBuster(sourcePlayerGO);
                 break;
             case 3:
                 UseSuicideBomber(sourcePlayerGO);
@@ -186,16 +186,52 @@ public class SkillsManager : MonoBehaviour
             return;
 
         List<Player> opponentPlayerList = thisPlayer.PlayerHeroData.m_heroType == HeroType.Chaser ? GameManager.Instance.AllRunnersList : GameManager.Instance.AllChasersList;
-
         for (int i = 0; i < opponentPlayerList.Count; i++)
         {
             opponentPlayerList[i].GoBlind();
         }
     }
 
-    void UseBlockBuster()
+    IEnumerator UseBlockBuster(GameObject sourcePlayer)
     {
         Debug.Log("UseBlockBuster");
+        if(!sourcePlayer.GetComponent<Player>().isLocalPlayer)
+            yield break;
+
+        Player thisPlayer = sourcePlayer.GetComponent<Player>();
+        List<Player> playersList = new List<Player>();
+        Collider[] hitColliders = Physics.OverlapSphere(sourcePlayer.transform.position, 4);
+        int i = 0;
+        while (i < hitColliders.Length)
+        {
+            Player otherPlayer = hitColliders[i].GetComponent<Player>();
+            if (otherPlayer && otherPlayer != thisPlayer)
+            {
+                if (thisPlayer.PlayerHeroData.m_heroType != otherPlayer.PlayerHeroData.m_heroType)
+                {
+                    playersList.Add(otherPlayer);
+                }
+            }
+            i++;
+        }
+        Debug.Log(playersList.Count);
+
+        if (playersList.Count > 0)
+        {
+            foreach (Player item in playersList)
+            {
+                item.CurrentMovementSpeed /= 0.5f;
+            }
+        }
+        yield return new WaitForSeconds(AllSkillsData[thisPlayer.PlayerHeroData.m_skillID].m_duration);
+
+        if (playersList.Count > 0)
+        {
+            foreach (Player item in playersList)
+            {
+                item.CurrentMovementSpeed *= 0.5f;
+            }
+        }
     }
 
     IEnumerator ActivateAlmightyPush(GameObject sourcePlayerGO, int skillID)

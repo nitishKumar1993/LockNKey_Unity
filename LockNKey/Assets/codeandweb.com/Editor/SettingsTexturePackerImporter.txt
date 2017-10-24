@@ -1,0 +1,9 @@
+version: 2
+importPivots: 1
+tpsheetFileNames:
+- Assets/Sprites/UI/UI.tpsheet
+textureFileNames:
+- Assets/Sprites/UI/UI.png
+normalmapFileNames:
+- 
+enableDebugOutput: 0

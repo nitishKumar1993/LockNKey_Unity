@@ -32,8 +32,8 @@ public class InGameUIManager : MonoBehaviour
     private Text m_fpsText;
     float deltaTime;
 
-    private string m_chaserWonGameOverMsg = "Chasers Won";
-    private string m_runnersWonGameOverMsg = "Runners Won";
+    private string m_chaserWonGameOverMsg = "CHASER WON";
+    private string m_runnersWonGameOverMsg = "RUNNERS WON";
 
     private void Start()
     {
@@ -52,6 +52,8 @@ public class InGameUIManager : MonoBehaviour
             NDiscovery.Instance.StopBroadcasting();
 
         NetworkManager.singleton.StopHost();
+
+        Destroy(GameManager.Instance.gameObject);
     }
 
     public void UpdateTimerUI(int secs)
